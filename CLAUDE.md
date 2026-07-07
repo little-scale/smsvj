@@ -95,13 +95,25 @@ Toolchain mirrors SMSGGDJ: **WLA-DX** (`wla-z80` + `wlalink`) + Python 3 for bui
 tools, browser apps for the user-facing tooling. Match the sibling repo's `make`
 targets and layout where sensible.
 
-## Current repo state (as of this writing)
+## Current repo state
 
-Day zero: the repo contains **only the two design docs** (`CLAUDE.md`,
-`SCENE_FORMAT.md`) — no source, no `make` targets, no toolchain installed, not yet a
-git repo. Don't hunt for a Makefile or `src/`; there isn't one. Start from **Build
-order step 1** (the browser look-patcher emitter) unless told otherwise. Toolchain and
-layout are to be mirrored from the sibling SMSGGDJ repo when the first code lands.
+Built out, past Build order steps 1–3. What exists:
+
+- **`tool/`** — the two browser apps and the emitter core. `index.html` (look-patcher) +
+  `studio.html` (tile studio), with modules in `tool/js/` (`generators`, `scene`, `svjb`,
+  `fold`, `tiles`, `render`, `clock`, `palgen`, `romdecode`, `app`, `studio`). Node harness
+  at `tool/test/roundtrip.js`; `export-bank.js` and `repage.js` feed the ROM build.
+- **`rom/`** — the WLA-DX runtime (`src/*.asm` + `sms.inc`), `Makefile`, and the paged
+  96 KB build. `make bank && make`, or `make import FILE=…` for a browser-authored bank.
+- **`romdecode.js`** — ROM graphics decompressors (Raw, Phantasy Star RLE, Sonic 1, Sonic 2/
+  Aspect, RNC ProPack 1/2) with per-format `Find` scanners.
+- Docs: `MANUAL.md` (user guide), `README.md`, `SCENE_FORMAT.md`, `EMULATION.md`, and a
+  root `index.html` landing page for GitHub Pages.
+
+**16 tilesets and 16 palettes**, paired 1:1 (a `.svjt` imported into tileset N drops its
+palette in palette slot N). Remaining: **sync input** (reuse SMSGGDJ's SYNC IN reader) and
+the **MIDI/Link** paths (Build order step 4); the pad grammar is assemble-verified only —
+confirm on hardware. Verify render/boot on emulator per `EMULATION.md`.
 
 ## Build order
 

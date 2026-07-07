@@ -6,9 +6,26 @@ visual: minimal custom tiles rendered as a kaleidoscope (or full-frame), with li
 palette / effect / movement / scene ridden from controller 1 and latched to a musical
 clock shared with the tracker.
 
-See **[`CLAUDE.md`](CLAUDE.md)** for the design brief and hard invariants, and
-**[`SCENE_FORMAT.md`](SCENE_FORMAT.md)** for the `.svjb` bank format — the contract
+📖 **[Read the manual](MANUAL.md)** for full usage of both browser tools, ROM ripping,
+and the build. See **[`CLAUDE.md`](CLAUDE.md)** for the design brief and hard invariants,
+and **[`SCENE_FORMAT.md`](SCENE_FORMAT.md)** for the `.svjb` bank format — the contract
 between the browser tool (emitter) and the ROM runtime (consumer).
+
+## The tools
+
+Two browser apps (no build step — open the HTML directly, or `cd tool && python3 -m http.server`):
+
+- **Look-patcher** (`tool/index.html`) — design tilesets from a geometry engine (12 styles,
+  rotate/spin/thick/period/cell), 16 global palettes with a seed-based palette generator,
+  a 9-way effect dial and 7 movements; preview against a fake clock; **bake the `.svjb`
+  scene bank** for the console.
+- **Tile studio** (`tool/studio.html`) — compose scenes by hand: **rip 8×8 tiles from a
+  ROM** (decompressing Phantasy Star RLE, Sonic 1, Sonic 2/Aspect, or RNC ProPack) or
+  quantise an image, then stamp / select / move / rotate / mirror / invert / fill /
+  pixel-edit, with undo. Exports a `.svjt` the look-patcher imports.
+
+Once **GitHub Pages** is enabled (Settings → Pages → `main` / root), they run online at
+`https://little-scale.github.io/smsvj/`.
 
 ## Controls
 
@@ -90,10 +107,12 @@ compact ones alike.
 
 ## Status
 
-Emitter (look-patcher + Generator panel) and the ROM runtime — clock/latch core,
-tile & name-table upload, register-2 mirror switching, palette/movement, and the full
-corruption suite — render and boot on emulator. The controller-1 grammar is wired and
-assemble-verified; sync input and MIDI/Link paths are next. See `CLAUDE.md` → Build order.
+Both browser tools (look-patcher + tile studio) and the ROM runtime — clock/latch core,
+tile & name-table upload, register-2 mirror switching, 16 palettes/movement, and the full
+corruption suite — render and boot on emulator. ROM graphics ripping supports Phantasy
+Star RLE, Sonic 1, Sonic 2/Aspect and RNC ProPack (RNC verified byte-exact against the
+reference compressor). The controller-1 grammar is wired and assemble-verified; sync input
+and MIDI/Link paths are next. See `CLAUDE.md` → Build order.
 
 ---
 
