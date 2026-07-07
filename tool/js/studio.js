@@ -107,7 +107,11 @@
 
   // ---- ROM source ----
   function romSheetTiles() {
-    const bytes = SVJ.romdecode.decode(ROM.buf, ROM.off, ROM.format);
+    let bytes;
+    if (ROM.format === "rnc") {
+      const r = SVJ.romdecode.rncUnpack(ROM.buf, ROM.off); bytes = r.bytes;
+      setStatus(`RNC ${r.ok ? "✓ CRC ok" : "✗ no/!CRC"} · ${bytes.length} B`, r.ok ? "ok" : "err");
+    } else bytes = SVJ.romdecode.decode(ROM.buf, ROM.off, ROM.format);
     const out = [];
     for (let i = 0; i < 256; i++) out.push(T.decode(bytes, i * 32));
     SRC.tiles = out; SRC.cols = 16; renderSrc();

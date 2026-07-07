@@ -533,7 +533,14 @@
   // Tiles come from the decoded byte stream (raw = a view from the offset; a compressed
   // format decompresses the block starting at the offset). Tile k = tileBytes[k*32..].
   const romTileByte = (col, row) => (row * ROM.sw + col) * 32;
-  function recomputeRomTiles() { if (ROM.buf) ROM.tileBytes = SVJ.romdecode.decode(ROM.buf, ROM.off, ROM.format); }
+  function recomputeRomTiles() {
+    if (!ROM.buf) return;
+    if (ROM.format === "rnc") {
+      const r = SVJ.romdecode.rncUnpack(ROM.buf, ROM.off);
+      ROM.tileBytes = r.bytes;
+      setStatus(`RNC ${r.ok ? "✓ CRC ok" : "✗ no/!CRC"} · ${r.bytes.length} B @ 0x${ROM.off.toString(16)}`, r.ok ? "ok" : "err");
+    } else ROM.tileBytes = SVJ.romdecode.decode(ROM.buf, ROM.off, ROM.format);
+  }
 
   // Set the ROM offset (byte-precise) and refresh everything that reads it.
   function setRomOff(off) {
