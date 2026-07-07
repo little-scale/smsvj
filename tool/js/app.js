@@ -236,6 +236,11 @@
     // Corruption effects, mirroring the ROM. MELT(7)/CHURN(9) mutate a working
     // copy of the tile patterns; SCRAMBLE(8) toggles flip/palette-bank bits of
     // name-table cells. Copies rebuild clean when off or the scene changes.
+    // Beat kick: an extra corruption burst on the beat, so the glitch pulses.
+    const beatNow = Math.floor(clk.state.tick / CLK.BEAT);
+    const kick = beatNow !== ui.lastRenderBeat ? 2 : 1;
+    ui.lastRenderBeat = beatNow;
+
     let tilesForRender = b.tiles;
     let layoutForRender = b.layouts[layoutIdx];
     if (fx.type === 0x07 || fx.type === 0x09) {
@@ -243,13 +248,13 @@
         ui.moshTiles = b.tiles.map((t) => t.map((r) => r.slice()));
         ui.moshBase = b;
       }
-      const rate = (fx.p0 | 0) || 24;
+      const rate = ((fx.p0 | 0) || 24) * kick;
       for (let k = 0; k < rate; k++) {
         const ti = (Math.random() * ui.moshTiles.length) | 0;
         ui.moshTiles[ti][(Math.random() * 8) | 0][(Math.random() * 8) | 0] = (Math.random() * 16) | 0;
       }
       if (fx.type === 0x09) {                 // CHURN heals p1 pixels back
-        const heal = (fx.p1 | 0) || 16;
+        const heal = ((fx.p1 | 0) || 16) * kick;
         for (let k = 0; k < heal; k++) {
           const ti = (Math.random() * ui.moshTiles.length) | 0;
           const py = (Math.random() * 8) | 0, px = (Math.random() * 8) | 0;
@@ -259,15 +264,20 @@
       tilesForRender = ui.moshTiles;
     } else { ui.moshTiles = null; ui.moshBase = null; }
 
-    if (fx.type === 0x08) {                    // SCRAMBLE toggles flip/bank bits
+    if (fx.type === 0x08) {                    // SCRAMBLE: flip toggles + tile swaps
       if (!ui.moshLayout || ui.moshLBase !== layoutForRender) {
         ui.moshLayout = layoutForRender.slice();
         ui.moshLBase = layoutForRender;
       }
-      const cells = (fx.p0 | 0) || 30;
+      const cells = ((fx.p0 | 0) || 24) * kick;
       for (let k = 0; k < cells; k++) {
         const ci = (Math.random() * ui.moshLayout.length) | 0;
-        ui.moshLayout[ci] ^= ((Math.random() * 8) | 0) << 9;  // bits 9/10/11
+        ui.moshLayout[ci] ^= ((Math.random() * 8) | 0) << 9;  // toggle flip/bank
+      }
+      const swaps = (fx.p1 | 0) * kick;        // SCRAMBLE++: swap to a random tile
+      for (let k = 0; k < swaps; k++) {
+        const ci = (Math.random() * ui.moshLayout.length) | 0;
+        ui.moshLayout[ci] = ((Math.random() * b.tiles.length) | 0) | (((Math.random() * 8) | 0) << 9);
       }
       layoutForRender = ui.moshLayout;
     } else { ui.moshLayout = null; ui.moshLBase = null; }

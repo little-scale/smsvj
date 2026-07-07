@@ -108,6 +108,23 @@ scene_load:
   ; --- tiles ---  length = tile_count * 32
   ld a,(ix+SC_TILECOUNT)
   ld (tile_count),a
+  ; mosh_mask = smallest 2^n-1 >= tile_count-1 (fill bits below the top set bit)
+  dec a
+  ld b,a
+  srl b
+  or b
+  ld b,a
+  srl b
+  srl b
+  or b
+  ld b,a
+  srl b
+  srl b
+  srl b
+  srl b
+  or b
+  ld (mosh_mask),a
+  ld a,(ix+SC_TILECOUNT)
   ld l,a
   ld h,0
   add hl,hl
@@ -684,9 +701,85 @@ scr_ok:
   out (VDP_DATA),a
   pop bc
   djnz scr_loop
+  ; --- SCRAMBLE++: swap fx_p1 cells to a fresh random tile (index + flip/bank) ---
+  ld a,(fx_p1)
+  or a
+  jr z,scr_done
+  ld b,a
+sci_loop:
+  push bc
+  call lfsr_next             ; cell address
+  ld a,h
+  and $07
+  ld h,a
+  ld a,l
+  and $FE
+  ld l,a
+  ld de,LAYOUT_BYTES
+  ld a,h
+  cp d
+  jr c,sci_ok
+  jr nz,sci_sub
+  ld a,l
+  cp e
+  jr c,sci_ok
+sci_sub:
+  or a
+  sbc hl,de
+sci_ok:
+  ld de,$3800
+  add hl,de
+  push hl                    ; cell address
+  call lfsr_next             ; index + flip source
+  ld a,l
+  ld hl,mosh_mask
+  and (hl)                   ; index candidate (< 2*tile_count)
+  ld c,a
+  ld a,(tile_count)
+  ld d,a
+  ld a,c
+  cp d
+  jr c,sci_idxok
+  sub d                      ; fold into [0, tile_count)
+  ld c,a
+sci_idxok:
+  ld a,h
+  and $0E                    ; random flip/bank bits (word bits 9-11)
+  ld d,a                     ; word high (index bit 8 = 0)
+  ld e,c                     ; word low = index
+  pop hl                     ; cell address
+  ld a,l
+  out (VDP_CTRL),a
+  ld a,h
+  or $40
+  out (VDP_CTRL),a
+  ld a,e
+  out (VDP_DATA),a
+  ld a,d
+  out (VDP_DATA),a
+  pop bc
+  djnz sci_loop
+scr_done:
   ld a,1
   ld (layout_dirty),a
   ret
+
+; Dispatch the active corruption effect's per-tick step (also used as a beat kick).
+mosh_step:
+  ld a,(fx_type)
+  cp 7
+  jr z,ms_melt
+  cp 8
+  jr z,ms_scr
+  cp 9
+  jr z,ms_chn
+  ret
+ms_melt:
+  jp corrupt_step
+ms_scr:
+  jp scramble_step
+ms_chn:
+  jp churn_step
 
 ; 16-bit Galois LFSR (taps $B400), advanced once.
 lfsr_next:
