@@ -10,6 +10,34 @@ See **[`CLAUDE.md`](CLAUDE.md)** for the design brief and hard invariants, and
 **[`SCENE_FORMAT.md`](SCENE_FORMAT.md)** for the `.svjb` bank format — the contract
 between the browser tool (emitter) and the ROM runtime (consumer).
 
+## Controls
+
+Everything is played from **controller 1**. Each face button owns a theme —
+**B1 = effect**, **B2 = look**, **B1+B2 = source** — and the direction pad picks the
+value. Changes are captured the instant you press and applied on the next musical
+boundary (the *latch*), so you can arm a move early and it lands in time.
+
+| Input | Action | Latch |
+|---|---|---|
+| **B1 + ↑ / ↓** | **Effect dial** — 9 steps: `NONE` at centre, 4 glitch effects up, 4 down | tick |
+| **B1 + ← / →** | **Effect speed** — 0–15, clamped (no wrap); scales corruption passes/frame | instant |
+| **B2 + ↑ / ↓** | **Movement** — 7 options (see below) | tick |
+| **B1+B2 + ← / →** | **Tileset** — of 16; palette stays | beat |
+| **B1+B2 + ↑ / ↓** | **Palette** — of 8; tileset stays | tick |
+| **B2 tap** (alone) | Overlay show / hide | on release |
+| **Pause** (console button) | **Colour freeze** — hold current colours (toggle) | instant |
+
+Palette and tileset are **independent** — the B1+B2 combo mixes them: ←/→ swaps the
+tileset keeping the palette, ↑/↓ swaps the palette keeping the tileset.
+
+- **Effect dial** (all corruption): down = SMEAR-D / STAMP / XOR / MORPH · centre = NONE ·
+  up = SCRAMBLE / SMEAR-H / SMEAR-V / CHURN.
+- **Movement of 7**: slow up · slow down · fast up · fast down · wobble A · wobble B · none.
+
+**Clock:** row = 1/16 = **tick**, **beat** = 4 ticks, **bar** = 16 ticks. Tempo comes from
+the internal clock or an external sync source (SMSGGDJ / Ableton Link via the ESP32
+bridge) on controller port 2.
+
 ## Look-patcher (browser tool)
 
 The authoring app that bakes `.svjb` scene banks. **The runtime is dumb; the tool is
@@ -35,10 +63,24 @@ Headless test of the emitter core (encode / dedupe-with-flips / fold / serialize
 node tool/test/roundtrip.js
 ```
 
+## ROM
+
+Build the console ROM (WLA-DX; regenerates the embedded scene bank from the tool):
+
+```
+cd rom
+make bank && make      # → rom/smsvj.sms (96 KB, standard Sega mapper)
+```
+
+`make bank` re-exports `assets/look.svjb` from the look-patcher before assembling. Run
+it whenever you change the tool; plain `make` reuses the existing bank.
+
 ## Status
 
-Build order step 1 (look-patcher emitter) is in progress. The ROM runtime,
-sync input, and MIDI/Link paths are not yet started — see `CLAUDE.md` → Build order.
+Emitter (look-patcher + Generator panel) and the ROM runtime — clock/latch core,
+tile & name-table upload, register-2 mirror switching, palette/movement, and the full
+corruption suite — render and boot on emulator. The controller-1 grammar is wired and
+assemble-verified; sync input and MIDI/Link paths are next. See `CLAUDE.md` → Build order.
 
 ---
 
