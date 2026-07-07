@@ -1,0 +1,83 @@
+:root {
+  --bg: #0d0f14;
+  --panel: #161a22;
+  --edge: #262c38;
+  --ink: #e6e9ef;
+  --dim: #8b93a3;
+  --accent: #57e0c8;
+  --accent2: #ff6ac1;
+  --warn: #ffb454;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 13px/1.4 "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; padding: .6rem 1rem; border-bottom: 1px solid var(--edge);
+  background: linear-gradient(90deg, #12151c, #171b24);
+}
+h1 { font-size: 1rem; margin: 0; letter-spacing: .04em; }
+h1 span { color: var(--accent); font-weight: 400; }
+h2 { font-size: .8rem; margin: 0 0 .6rem; color: var(--dim); text-transform: uppercase; letter-spacing: .08em; }
+h3 { font-size: .75rem; margin: 1rem 0 .4rem; color: var(--accent2); text-transform: uppercase; letter-spacing: .06em; }
+.bankbar { display: flex; align-items: center; gap: .6rem; }
+.status { color: var(--dim); min-width: 12ch; }
+.status.ok { color: var(--accent); }
+.status.err { color: var(--warn); }
+
+main {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(360px, 1.2fr) minmax(300px, 1fr);
+  gap: 1px; background: var(--edge); min-height: calc(100vh - 52px);
+}
+.panel { background: var(--panel); padding: 1rem; overflow-y: auto; }
+
+label { display: inline-flex; flex-direction: column; gap: .2rem; color: var(--dim); font-size: .72rem; }
+label.chk { flex-direction: row; align-items: center; gap: .3rem; text-transform: none; }
+select, input[type=number] {
+  background: #0d0f14; color: var(--ink); border: 1px solid var(--edge);
+  border-radius: 4px; padding: .3rem .4rem; font: inherit;
+}
+.row { display: flex; gap: .8rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: .6rem; }
+button {
+  background: #1e2330; color: var(--ink); border: 1px solid var(--edge);
+  border-radius: 5px; padding: .35rem .7rem; font: inherit; cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: #05201b; border-color: var(--accent); font-weight: 600; }
+button.on { background: var(--accent2); color: #2a0620; border-color: var(--accent2); }
+
+.pixelcanvas { image-rendering: pixelated; border: 1px solid var(--edge); background: #000; display: block; width: 100%; height: auto; }
+.pixelcanvas.big { max-width: 512px; }
+.hint { color: var(--dim); font-size: .68rem; margin: .5rem 0 0; }
+.mono { font-variant-numeric: tabular-nums; }
+
+.draw-swatches { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; margin-top: .5rem; }
+.draw-swatches i { aspect-ratio: 1; border: 1px solid #000; cursor: pointer; display: block; }
+.draw-swatches i.sel { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.axes { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin: .7rem 0; }
+.axis { background: #10131a; border: 1px solid var(--edge); border-radius: 5px; padding: .4rem; }
+.axis > span { font-size: .68rem; color: var(--dim); display: block; margin-bottom: .3rem; }
+.axbtns { display: flex; gap: .25rem; }
+.axbtns b { flex: 1; text-align: center; padding: .3rem 0; border: 1px solid var(--edge); border-radius: 3px; cursor: pointer; font-weight: 400; }
+.axbtns b.cur { background: var(--accent); color: #05201b; }
+.axbtns b.pend { outline: 2px dashed var(--accent2); outline-offset: -2px; }
+
+.cram { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; margin: .4rem 0; }
+.cram i { aspect-ratio: 1; border: 1px solid #000; cursor: pointer; display: block; }
+.cram i.sel { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cram i.prim { border: 1px solid var(--warn); }
+.gamut { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; margin: .4rem 0; }
+.gamut i { aspect-ratio: 1; border: 1px solid #000; cursor: pointer; display: block; }
+.primary-row { font-size: .7rem; color: var(--dim); margin-bottom: .4rem; }
+
+.reccfg { display: flex; flex-direction: column; gap: .35rem; }
+.reccfg .rec { display: flex; gap: .3rem; align-items: center; }
+.reccfg .rec > span { width: 1.2rem; color: var(--dim); }
+.reccfg select, .reccfg input { padding: .2rem .3rem; font-size: .72rem; }
+.reccfg input { width: 3.2rem; }
