@@ -21,22 +21,28 @@
   </header>
 
   <main>
-    <!-- AUTHORING -->
+    <!-- GENERATOR -->
     <section class="panel author">
-      <h2>Author</h2>
+      <h2>Generator <span id="tileCount" class="mono"></span></h2>
       <div class="row">
-        <label>Scene
-          <select id="sceneSel">
-            <option>0</option><option>1</option><option>2</option><option>3</option>
-          </select>
-        </label>
+        <label>Tileset <select id="sceneSel"></select></label>
         <label>Mode
           <select id="modeSel"><option value="quarter">Quarter (fold)</option><option value="full">Full frame</option></select>
         </label>
       </div>
+      <div class="gen">
+        <label>Style <select id="genStyle"></select></label>
+        <label>Metric <select id="genMetric"></select></label>
+        <label>Period <b id="vPeriod" class="mono"></b><input id="genPeriod" type="range" min="0" max="64" step="4" /></label>
+        <label>Thick <b id="vThick" class="mono"></b><input id="genThick" type="range" min="1" max="12" /></label>
+        <label>Rotate <b id="vRot" class="mono"></b><input id="genRot" type="range" min="0" max="90" /></label>
+        <label>Spin <b id="vSpin" class="mono"></b><input id="genSpin" type="range" min="0" max="180" /></label>
+        <label>Cell <b id="vCell" class="mono"></b><input id="genCell" type="range" min="8" max="32" step="2" /></label>
+      </div>
+      <div class="row"><button id="genRandom">🎲 Randomize</button><span class="hint" id="tileBudgetHint"></span></div>
       <canvas id="authCanvas" class="pixelcanvas"></canvas>
       <div class="draw-swatches" id="drawSwatches"></div>
-      <p class="hint">Paint the source. Quarter mode bakes the 4-way kaleidoscope; full mode is drawn as-is. De-dup (incl. flips) runs in both.</p>
+      <p class="hint">Dial the geometry — the tileset regenerates, dedups (incl. flips), and re-bakes live. You can still paint on top. Quarter mode folds a 4-way kaleidoscope.</p>
     </section>
 
     <!-- PREVIEW -->

@@ -5,7 +5,7 @@
 
   const bank = SCENE.makeBank();
   const clk = CLK.make(bank);
-  const baked = [null, null, null, null]; // per-scene { tiles, layouts, refsGrid }
+  const baked = bank.scenes.map(() => null); // per-tileset { tiles, layouts, refsGrid }
 
   const ui = {
     curScene: 0,      // scene being AUTHORED
@@ -34,12 +34,71 @@
   function rebake(i) {
     try {
       baked[i] = SVJB.bakeScene(bank.scenes[i]);
-      setStatus(`scene ${i}: ${baked[i].tiles.length} tiles, ${baked[i].layouts.length} layout(s)`, "ok");
+      setStatus(`tileset ${i}: ${baked[i].tiles.length} tiles, ${baked[i].layouts.length} layout(s)`, "ok");
+      if (i === ui.curScene) $("tileCount").textContent = `${baked[i].tiles.length} tiles`;
     } catch (e) {
       setStatus(String(e.message || e), "err");
     }
   }
-  function rebakeAll() { for (let i = 0; i < 4; i++) rebake(i); }
+  function rebakeAll() { for (let i = 0; i < bank.scenes.length; i++) rebake(i); }
+
+  // ---- geometry generator panel ----
+  const GEN_FIELDS = { genPeriod: ["period", "vPeriod"], genThick: ["thickness", "vThick"],
+    genRot: ["rotation", "vRot"], genSpin: ["spin", "vSpin"], genCell: ["cell", "vCell"] };
+
+  function buildGeneratorControls() {
+    const styleSel = $("genStyle"), metSel = $("genMetric");
+    styleSel.innerHTML = SVJ.generators.STYLES.map((s) => `<option>${s}</option>`).join("");
+    metSel.innerHTML = SVJ.generators.METRIC_KEYS.map((m) => `<option>${m}</option>`).join("");
+    const onChange = () => applyGenerator();
+    styleSel.onchange = onChange; metSel.onchange = onChange;
+    for (const id of Object.keys(GEN_FIELDS)) $(id).oninput = onChange;
+    $("tileBudgetHint").textContent = "budget " + (scene().tileBudget || 48) + " tiles";
+  }
+
+  // Sync the controls from the current tileset's generator params.
+  function syncGeneratorControls() {
+    const g = Object.assign(SVJ.generators.defaults(), scene().generator || {});
+    $("genStyle").value = g.style;
+    $("genMetric").value = g.metric;
+    for (const [id, [key, span]] of Object.entries(GEN_FIELDS)) {
+      $(id).value = g[key]; $(span).textContent = g[key];
+    }
+    $("genMetric").parentElement.style.opacity = g.style === "metric" ? 1 : 0.4;
+    $("tileBudgetHint").textContent = "budget " + (scene().tileBudget || 48) + " tiles";
+  }
+
+  // Read the controls, regenerate this tileset's pixels, re-bake + redraw.
+  function applyGenerator() {
+    const g = Object.assign(SVJ.generators.defaults(), scene().generator || {});
+    g.style = $("genStyle").value;
+    g.metric = $("genMetric").value;
+    for (const [id, [key, span]] of Object.entries(GEN_FIELDS)) {
+      g[key] = parseFloat($(id).value); $(span).textContent = $(id).value;
+    }
+    scene().generator = g;
+    $("genMetric").parentElement.style.opacity = g.style === "metric" ? 1 : 0.4;
+    const geo = F.geometry(scene().mode);
+    scene().pixels = SVJ.generators.generate(g, geo.pxW, geo.pxH);
+    drawAuthoring();
+    rebake(ui.curScene);
+  }
+
+  function randomizeGenerator() {
+    const pick = (a) => a[(Math.random() * a.length) | 0];
+    const g = {
+      style: pick(SVJ.generators.STYLES),
+      metric: pick(SVJ.generators.METRIC_KEYS),
+      period: [0, 16, 24, 32, 40, 48][(Math.random() * 6) | 0],
+      thickness: 2 + ((Math.random() * 5) | 0),
+      rotation: pick([0, 0, 0, 45, 30, 20]),
+      spin: pick([0, 0, 30, 60, 90, 6, 10]),
+      cell: [12, 16, 20, 24][(Math.random() * 4) | 0],
+    };
+    scene().generator = g;
+    syncGeneratorControls();
+    applyGenerator();
+  }
 
   function setStatus(msg, cls) {
     const el = $("status");
@@ -215,6 +274,7 @@
     sizeAuthoring(); drawAuthoring();
     buildDrawSwatches(); buildCramGrid();
     buildEffectsCfg(); buildMovementsCfg();
+    syncGeneratorControls();
   }
 
   // ---- preview render ----
@@ -382,12 +442,13 @@
     $("modeSel").value = scene().mode;
     sizeAuthoring(); drawAuthoring();
     buildDrawSwatches(); buildCramGrid(); buildEffectsCfg(); buildMovementsCfg(); buildAxes();
+    syncGeneratorControls();
   };
   $("modeSel").onchange = (e) => {
     scene().mode = e.target.value;
-    scene().pixels = SCENE.emptyPixels(scene().mode); // fresh canvas; user re-paints
-    sizeAuthoring(); drawAuthoring(); rebake(ui.curScene);
+    sizeAuthoring(); applyGenerator();          // regenerate for the new geometry
   };
+  $("genRandom").onclick = randomizeGenerator;
   $("palSel").onchange = (e) => {
     ui.editPal = parseInt(e.target.value, 10);
     buildCramGrid(); buildDrawSwatches(); drawAuthoring();
@@ -413,6 +474,9 @@
   function init() {
     $("bpm").value = bank.default_bpm;
     $("spdVal").textContent = ui.moshSpeed;
+    $("sceneSel").innerHTML = bank.scenes.map((s, i) => `<option>${i}</option>`).join("");
+    buildGeneratorControls();
+    syncGeneratorControls();
     sizeAuthoring();
     rebakeAll();
     drawAuthoring();
