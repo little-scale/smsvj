@@ -16,7 +16,7 @@ SVJ.generators = (function () {
     angular:   (x, y) => (Math.atan2(y, x) / (2 * Math.PI) + 0.5) * 64, // spokes/pie
   };
   const METRIC_KEYS = Object.keys(METRICS);
-  const STYLES = ["metric", "weave", "truchet", "chevron", "wave", "grid", "plaid", "stripe", "brick"];
+  const STYLES = ["metric", "weave", "truchet", "chevron", "wave", "grid", "plaid", "stripe", "brick", "star"];
 
   // Cell styles ------------------------------------------------------------
   function weaveIdx(x, y, cell) {
@@ -45,6 +45,14 @@ SVJ.generators = (function () {
     const per = p.period || 16, th = p.thickness || 2, dir = p.spin | 0;
     const pos = dir === 0 ? y : dir === 1 ? x : dir === 2 ? x + y : x - y + 512;
     return idx(Math.floor((((pos % per) + per) % per) / th));
+  }
+  // Star / flower: concentric bands whose radius is modulated by the angle, so
+  // rings bulge into petals. spin = petal count, period = petal depth. Folds
+  // into a flower mandala in quarter mode.
+  function starIdx(x, y, p) {
+    const a = Math.atan2(y + 0.5, x + 0.5);
+    const r = Math.hypot(x, y);
+    return idx((r + Math.cos(a * (p.spin || 6)) * (p.period || 8)) / (p.thickness || 4));
   }
   // Offset brick wall with mortar lines. period = brick width, cell = height.
   function brickIdx(x, y, p) {
@@ -89,6 +97,7 @@ SVJ.generators = (function () {
         if (p.style === "plaid") { row[x] = plaidIdx(x, y, p); continue; }
         if (p.style === "stripe") { row[x] = stripeIdx(x, y, p); continue; }
         if (p.style === "brick") { row[x] = brickIdx(x, y, p); continue; }
+        if (p.style === "star") { row[x] = starIdx(x, y, p); continue; }
         // metric style: optional lattice fold, then rotate coords, then measure.
         let px_ = x, py_ = y;
         if (p.period > 0) { px_ = (x % p.period) - p.period / 2; py_ = (y % p.period) - p.period / 2; }

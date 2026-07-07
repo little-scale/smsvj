@@ -96,27 +96,27 @@ SVJ.scene = (function () {
     ramp(THEMES.candy), ramp(THEMES.forest), ramp(THEMES.sunset), ramp(THEMES.neon),
   ];
 
-  // 16 minimal tilesets — all tile-periodic (period a multiple of 8, matched in
-  // both axes) so each dedups to <=16 unique 8x8 tiles.
+  // 16 fresh tilesets — a mix of rich radial/interference work (folded mandalas,
+  // moiré) and bolder lattices. Cap back up to 48 unique tiles.
   const sc = (mode, gen) => ({ mode, generator: G(gen), variants: [0], primary: 8,
-    tileBudget: 16, effects: EFFECTS(), movements: FLOW() });
+    tileBudget: 48, effects: EFFECTS(), movements: FLOW() });
   const DEFS = [
-    sc("full",    { style: "metric", metric: "taxicab", period: 16, thickness: 2 }),               // small diamonds
-    sc("full",    { style: "metric", metric: "taxicab", period: 24, thickness: 3 }),               // diamonds
-    sc("full",    { style: "metric", metric: "taxicab", period: 32, rotation: 45, thickness: 3 }), // argyle
-    sc("full",    { style: "metric", metric: "chebyshev", period: 16, thickness: 2 }),             // small squares
-    sc("full",    { style: "metric", metric: "chebyshev", period: 24, thickness: 3 }),             // nested squares
-    sc("full",    { style: "metric", metric: "euclidean", period: 16, thickness: 2 }),             // dot lattice
-    sc("full",    { style: "metric", metric: "euclidean", period: 24, thickness: 3 }),             // ring lattice
-    sc("full",    { style: "grid", period: 16, thickness: 2 }),                                    // mesh
-    sc("full",    { style: "grid", period: 24, thickness: 4 }),                                    // wide mesh
-    sc("quarter", { style: "weave", cell: 16 }),                                                   // basket weave
-    sc("quarter", { style: "weave", cell: 24 }),                                                   // wide weave
-    sc("full",    { style: "plaid", period: 16, thickness: 2 }),                                   // fine tartan
-    sc("full",    { style: "plaid", period: 24, thickness: 3 }),                                   // tartan
-    sc("full",    { style: "stripe", period: 16, thickness: 2, spin: 2 }),                         // diagonal bands
-    sc("full",    { style: "stripe", period: 24, thickness: 3, spin: 3 }),                         // anti-diagonal
-    sc("full",    { style: "brick", period: 32, cell: 16, thickness: 2 }),                         // brick wall
+    sc("full",    { style: "wave", period: 48, spin: 0.7 }),                                       // soft interference
+    sc("quarter", { style: "star", spin: 6, period: 7, thickness: 4 }),                            // flower mandala
+    sc("quarter", { style: "star", spin: 10, period: 10, thickness: 3 }),                          // star mandala
+    sc("quarter", { style: "metric", metric: "euclidean", period: 0, spin: 100, thickness: 4 }),   // spiral
+    sc("quarter", { style: "metric", metric: "angular", period: 0, thickness: 3 }),                // pinwheel
+    sc("quarter", { style: "metric", metric: "taxicab", period: 0, thickness: 5 }),                // diamond mandala
+    sc("quarter", { style: "truchet", cell: 16 }),                                                 // woven maze
+    sc("quarter", { style: "metric", metric: "chebyshev", period: 0, thickness: 5 }),              // square mandala
+    sc("quarter", { style: "metric", metric: "euclidean", period: 0, thickness: 5 }),              // ring mandala
+    sc("full",    { style: "wave", period: 32, spin: 1.9 }),                                        // fine interference
+    sc("full",    { style: "metric", metric: "taxicab", period: 48, rotation: 45, thickness: 4 }), // big argyle
+    sc("full",    { style: "plaid", period: 40, thickness: 4 }),                                    // large tartan
+    sc("full",    { style: "grid", period: 40, thickness: 5 }),                                     // bold mesh
+    sc("full",    { style: "brick", period: 48, cell: 24, thickness: 3 }),                          // large brick
+    sc("quarter", { style: "chevron", cell: 24 }),                                                  // chevron quilt
+    sc("quarter", { style: "metric", metric: "angular", period: 0, spin: 30, thickness: 2 }),       // spiral pinwheel
   ];
 
   function makeSceneFrom(def) {
