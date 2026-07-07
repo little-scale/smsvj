@@ -136,3 +136,12 @@ button.on { background: var(--accent2); color: #2a0620; border-color: var(--acce
 .solids { margin: .3rem 0 .5rem; }
 .solids .hint { display: block; margin-bottom: .25rem; }
 .solids .cram i { cursor: pointer; }
+.slots { margin: .3rem 0 .5rem; }
+.slots .hint { display: block; margin-bottom: .25rem; }
+.slotrow { display: flex; gap: .3rem; }
+.slot { width: 32px; height: 32px; image-rendering: pixelated; border: 1px solid var(--edge); border-radius: 3px; cursor: pointer; }
+.slot:hover { border-color: var(--accent); }
+.slot.empty { opacity: .5; }
+.pixed { margin-top: .5rem; }
+.pixcanvas { width: 160px; height: 160px; image-rendering: pixelated; cursor: crosshair; background: #000; border: 1px solid var(--edge); }
+.ops select { padding: .2rem .3rem; font-size: .72rem; }

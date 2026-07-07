@@ -13,6 +13,9 @@
   let brush = { w: 1, h: 1, tiles: [[blankTile()]] };
   let brushFlip = 0;                             // bit0 = H, bit1 = V
   let editSlot = 1;                              // palette entry being edited
+  let penIndex = 1;                              // pencil paint colour
+  const penTile = { tx: 0, ty: 0 };              // tile loaded in the pixel editor
+  const slots = new Array(8).fill(null);         // saved brushes
   const TGT = { mode: "quarter", tilesW: 16, tilesH: 12, pixels: null };
 
   function greyRamp() {
@@ -309,9 +312,63 @@
   $("opMirrorV").onclick = mirrorVRegion;
   $("opInvert").onclick = invertRegion;
 
+  // colour replace: swap index `from` -> `to` across the selection or frame.
+  function populateRep() { for (const id of ["repFrom", "repTo"]) $(id).innerHTML = Array.from({ length: 16 }, (_, i) => `<option>${i}</option>`).join(""); $("repTo").value = "0"; }
+  function replaceRegion() {
+    pushHistory();
+    const s = opRegion(), from = +$("repFrom").value, to = +$("repTo").value;
+    for (let r = 0; r < s.h * 8; r++) for (let c = 0; c < s.w * 8; c++) { const y = s.y * 8 + r, x = s.x * 8 + c; if ((TGT.pixels[y][x] & 15) === from) TGT.pixels[y][x] = to & 15; }
+    afterEdit();
+  }
+  $("opReplace").onclick = replaceRegion;
+
+  // ---- per-pixel editor (zoomed single tile) ----
+  const pixC = $("pixCanvas"), pxx = pixC.getContext("2d"), PIXZ = 16;
+  let pixPaint = false;
+  function renderPix() {
+    const { tx, ty } = penTile;
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+      const col = C.toRGB(pal[TGT.pixels[ty * 8 + r][tx * 8 + c] & 15] || 0);
+      pxx.fillStyle = `rgb(${col.r},${col.g},${col.b})`; pxx.fillRect(c * PIXZ, r * PIXZ, PIXZ, PIXZ);
+    }
+    pxx.strokeStyle = "rgba(255,255,255,0.14)"; pxx.lineWidth = 1;
+    for (let i = 0; i <= 8; i++) { pxx.beginPath(); pxx.moveTo(i * PIXZ, 0); pxx.lineTo(i * PIXZ, 128); pxx.stroke(); pxx.beginPath(); pxx.moveTo(0, i * PIXZ); pxx.lineTo(128, i * PIXZ); pxx.stroke(); }
+    $("pixCell").textContent = `${tx},${ty}`; $("pixIdx").textContent = penIndex;
+  }
+  function pixCellAt(ev) {
+    const rect = pixC.getBoundingClientRect();
+    return { c: Math.max(0, Math.min(7, (((ev.clientX - rect.left) / rect.width) * 8) | 0)), r: Math.max(0, Math.min(7, (((ev.clientY - rect.top) / rect.height) * 8) | 0)) };
+  }
+  function paintPix(c, r) { TGT.pixels[penTile.ty * 8 + r][penTile.tx * 8 + c] = penIndex & 15; renderPix(); renderTarget(); renderPreview(); }
+  pixC.addEventListener("mousedown", (e) => { pushHistory(); pixPaint = true; const p = pixCellAt(e); paintPix(p.c, p.r); });
+  pixC.addEventListener("mousemove", (e) => { if (pixPaint) { const p = pixCellAt(e); paintPix(p.c, p.r); } });
+  window.addEventListener("mouseup", () => { pixPaint = false; });
+
+  // ---- brush slots ----
+  const cloneBrush = (b) => ({ w: b.w, h: b.h, tiles: b.tiles.map((row) => row.map((t) => t.map((rr) => rr.slice()))) });
+  function buildSlots() {
+    const host = $("slotRow"); host.innerHTML = "";
+    for (let i = 0; i < 8; i++) {
+      const cv = document.createElement("canvas"); cv.width = 16; cv.height = 16; cv.className = "slot";
+      const cx = cv.getContext("2d");
+      if (slots[i]) {
+        const t = slots[i].tiles[0][0];
+        for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const col = C.toRGB(pal[t[r][c] & 15] || 0); cx.fillStyle = `rgb(${col.r},${col.g},${col.b})`; cx.fillRect(c * 2, r * 2, 2, 2); }
+        cv.title = `slot ${i}: ${slots[i].w}×${slots[i].h} — click to recall, shift-click to clear`;
+      } else { cx.fillStyle = "#111"; cx.fillRect(0, 0, 16, 16); cv.title = `slot ${i}: empty — click to save the current brush`; cv.classList.add("empty"); }
+      cv.onclick = (e) => {
+        if (e.shiftKey) { slots[i] = null; buildSlots(); return; }
+        if (slots[i]) { brush = cloneBrush(slots[i]); updateBrushInfo("slot " + i); }
+        else { slots[i] = cloneBrush(brush); buildSlots(); }
+      };
+      host.appendChild(cv);
+    }
+  }
+
   let tgtPaint = false, tgtSel = null, tgtSelDrag = null;
   tgt.addEventListener("mousedown", (e) => {
     const c = tgtCellAt(e);
+    if ($("pixelMode").checked) { penTile.tx = c.tx; penTile.ty = c.ty; renderPix(); return; }
     if ($("selectMode").checked) { tgtSelDrag = c; tgtSel = { x: c.tx, y: c.ty, w: 1, h: 1 }; renderTarget(); return; }
     pushHistory();
     if ($("bucket").checked) { floodFill(c.tx, c.ty); return; }
@@ -347,13 +404,13 @@
     for (let i = 0; i < 16; i++) {
       const el = document.createElement("i");
       el.style.background = C.toHex(pal[i]); el.title = "solid index " + i;
-      el.onclick = () => { brushFlip = 0; $("flipH").classList.remove("on"); $("flipV").classList.remove("on"); brush = { w: 1, h: 1, tiles: [[solidTile(i)]] }; updateBrushInfo("solid " + i); };
+      el.onclick = () => { brushFlip = 0; $("flipH").classList.remove("on"); $("flipV").classList.remove("on"); brush = { w: 1, h: 1, tiles: [[solidTile(i)]] }; penIndex = i; $("pixIdx").textContent = i; updateBrushInfo("solid " + i); };
       host.appendChild(el);
     }
   }
 
   // ---- palette editor ----
-  function afterPalChange() { buildPalStrip(); buildSolidStrip(); renderSrc(); renderTarget(); renderPreview(); }
+  function afterPalChange() { buildPalStrip(); buildSolidStrip(); buildSlots(); renderSrc(); renderTarget(); renderPreview(); if (typeof renderPix === "function") renderPix(); }
   function buildPalStrip() {
     const host = $("palStrip"); host.innerHTML = "";
     for (let i = 0; i < 16; i++) {
@@ -402,6 +459,26 @@
     setStatus(`exported ${TGT.mode} source`, "ok");
   };
 
+  // ---- round-trip: load an existing .svjt back in to keep editing ----
+  $("loadSvjt").onchange = (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try {
+        const d = JSON.parse(rd.result);
+        if (d.svjt !== 1 || !Array.isArray(d.pixels)) throw new Error("not a .svjt");
+        const mode = d.mode === "full" ? "full" : "quarter";
+        $("mode").value = mode; newTarget(mode);
+        TGT.pixels = d.pixels.map((r) => r.slice());
+        if (Array.isArray(d.palette) && d.palette.length >= 32) pal = Uint8Array.from(d.palette.slice(0, 32));
+        penTile.tx = 0; penTile.ty = 0; resetHistory(); afterPalChange();
+        setStatus(`loaded ${mode} .svjt`, "ok");
+      } catch (err) { setStatus("load failed: " + (err.message || err), "err"); }
+      e.target.value = "";
+    };
+    rd.readAsText(f);
+  };
+
   // drag-drop routing: image files -> image tab, else ROM tab
   document.body.addEventListener("dragover", (e) => e.preventDefault());
   document.body.addEventListener("drop", (e) => {
@@ -412,6 +489,7 @@
 
   // ---- init ----
   newTarget("quarter");
-  buildPalStrip(); buildSolidStrip(); buildGamut(); renderSrc(); renderTarget(); renderPreview();
+  populateRep();
+  buildPalStrip(); buildSolidStrip(); buildSlots(); buildGamut(); renderSrc(); renderTarget(); renderPreview(); renderPix();
   updateHistBtns();
 })();

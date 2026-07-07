@@ -14,6 +14,7 @@
         <select id="mode"><option value="quarter">Quarter (fold)</option><option value="full">Full frame</option></select>
       </label>
       <a class="backlink" href="index.html">▸ look-patcher</a>
+      <label class="filebtn">⬆ Load .svjt<input type="file" id="loadSvjt" accept=".svjt,.json" /></label>
       <button id="undo" title="undo (⌘Z)" disabled>↶</button>
       <button id="redo" title="redo (⇧⌘Z)" disabled>↷</button>
       <button id="clear">Clear</button>
@@ -55,7 +56,8 @@
       </div>
 
       <div class="srcwrap"><canvas id="srcSheet" class="pixelcanvas srcsheet"></canvas></div>
-      <div class="solids"><span class="hint">solid brush</span><div class="cram" id="solidStrip"></div></div>
+      <div class="solids"><span class="hint">solid brush (also sets the pencil colour)</span><div class="cram" id="solidStrip"></div></div>
+      <div class="slots"><span class="hint">brush slots — click empty to save, filled to recall, shift-click to clear</span><div class="slotrow" id="slotRow"></div></div>
       <div class="row">
         <span class="hint" id="brushInfo">pick a tile — click, or drag a group</span>
         <span class="flipbtns">flip <button id="flipH">H</button><button id="flipV">V</button></span>
@@ -81,6 +83,17 @@
         <button id="opMirrorV">Mirror V</button>
         <button id="opInvert">Invert</button>
         <span class="hint">on the selection, or the whole frame if nothing is selected (rotate needs a selection).</span>
+      </div>
+      <div class="row ops">
+        <label class="chk"><input type="checkbox" id="pixelMode" /> pixel edit</label>
+        <span class="hint">colour replace</span>
+        <select id="repFrom"></select> → <select id="repTo"></select>
+        <button id="opReplace">Replace</button>
+      </div>
+      <div class="pixed">
+        <canvas id="pixCanvas" class="pixelcanvas pixcanvas" width="128" height="128"></canvas>
+        <p class="hint">Pixel edit: turn on <b>pixel edit</b>, click a cell to load it, then paint here.
+          Tile <b id="pixCell" class="mono">0,0</b> · paint index <b id="pixIdx" class="mono">1</b> (set from the solid strip).</p>
       </div>
     </section>
 

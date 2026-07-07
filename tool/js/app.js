@@ -445,6 +445,16 @@
   };
   $("export").onclick = doExport;
 
+  // Export the current tileset's source as .svjt (round-trips into the tile studio).
+  $("exportSrc").onclick = () => {
+    const sc = scene();
+    const doc = { svjt: 1, mode: sc.mode, palette: Array.from(sc.palettes[ui.editPal]), pixels: sc.pixels.map((r) => Array.from(r)) };
+    const blob = new Blob([JSON.stringify(doc)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `tileset${ui.curScene}.svjt`; a.click();
+    URL.revokeObjectURL(a.href);
+    setStatus(`exported tileset ${ui.curScene} source`, "ok");
+  };
+
   // Import a .svjt scene source (from the tile studio) into the current tileset.
   $("importSrc").onchange = (e) => {
     const file = e.target.files[0]; if (!file) return;
