@@ -4,13 +4,20 @@
 ; ---------------------------------------------------------------------------
 .SECTION "scene" FREE
 
+; Map the header page (page 0) into slot 2 so BANKHDR reads are valid.
+page_hdr:
+  ld a,DATA_BANK0
+  ld (SLOT2_CTRL),a
+  ret
+
 ; Parse the bank header, set timing, load the boot scene, apply boot fx/mv.
 bank_init:
-  ld a,(bank_data+BANK_REGION)
+  call page_hdr
+  ld a,(BANKHDR+BANK_REGION)
   ld (region),a
-  ld a,(bank_data+BANK_BPM)
+  ld a,(BANKHDR+BANK_BPM)
   ld (bpm),a
-  ld a,(bank_data+BANK_BOOTSCENE)   ; boot scene 0-15
+  ld a,(BANKHDR+BANK_BOOTSCENE)     ; boot scene 0-15
   ld c,a
   and 3
   ld (cur_scene),a
@@ -21,13 +28,13 @@ bank_init:
   and 3
   ld (cur_bank),a
   ld (pend_bank),a
-  ld a,(bank_data+BANK_BOOTPAL)
+  ld a,(BANKHDR+BANK_BOOTPAL)
   ld (cur_pal),a
   ld (pend_pal),a
-  ld a,(bank_data+BANK_BOOTFX)
+  ld a,(BANKHDR+BANK_BOOTFX)
   ld (cur_fx),a
   ld (pend_fx),a
-  ld a,(bank_data+BANK_BOOTMV)
+  ld a,(BANKHDR+BANK_BOOTMV)
   ld (cur_mv),a
   ld (pend_mv),a
   xor a
@@ -47,34 +54,48 @@ bank_init:
   call recompose
   ret
 
-; effective index (cur_bank*4 + cur_scene) -> scene_addr via scene_ptr[].
+; effective index (cur_bank*4 + cur_scene) -> scene_addr, paging the scene's
+; ROM page into slot 2. scene_ptr[i] is a blob offset O; page = DATA_BANK0 +
+; (O>>14), and the scene sits at $8000 + (O & $3FFF) (aligned so it never
+; straddles a page). Reads the pointer table from the header page first.
 scene_resolve:
+  call page_hdr
   ld a,(cur_bank)
   add a,a
   add a,a                    ; bank*4
   ld b,a
   ld a,(cur_scene)
   add a,b                    ; effective index 0-15
-  ; clamp to scene_count-1 (banks beyond what's embedded fall back)
+  ; clamp to scene_count-1
   ld c,a
-  ld a,(bank_data+BANK_SCENECOUNT)
-  dec a                      ; max valid index
+  ld a,(BANKHDR+BANK_SCENECOUNT)
+  dec a
   cp c
   jr nc,+
-  ld c,a                     ; clamp
+  ld c,a
 +:
   ld a,c
-  add a,a                    ; *2 (word offset)
+  add a,a                    ; *2 (word offset into scene_ptr[])
   ld e,a
   ld d,0
-  ld hl,bank_data+BANK_SCENEPTR
+  ld hl,BANKHDR+BANK_SCENEPTR
   add hl,de
   ld e,(hl)
   inc hl
-  ld d,(hl)                  ; DE = bank-relative scene pointer
-  ld hl,bank_data
-  add hl,de
-  ld (scene_addr),hl
+  ld d,(hl)                  ; DE = blob offset O
+  ; page = DATA_BANK0 + (O >> 14) = DATA_BANK0 + (D >> 6)
+  ld a,d
+  rlca
+  rlca
+  and 3
+  add a,DATA_BANK0
+  ld (SLOT2_CTRL),a          ; page the scene's data bank into slot 2
+  ; scene_addr = $8000 + (O & $3FFF): high = $80 | (D & $3F), low = E
+  ld a,d
+  and $3F
+  or $80
+  ld d,a
+  ld (scene_addr),de
   ret
 
 ; Upload the current scene: tiles -> $0000, each layout variant -> its 2 KB

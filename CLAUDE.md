@@ -48,13 +48,18 @@ latched to a musical clock.
 
 | input | action | latch |
 |---|---|---|
-| B1 + ←/→ | palette (of 4) | beat |
-| B1 + ↑/↓ | effect (of 4) | beat |
-| B2 + ←/→ | scene / tileset (of 4) | bar |
-| B2 + ↑/↓ | movement (of 4) | beat |
+| B1 + ←/→ | palette (of 4) | tick |
+| B1 + ↑/↓ | effect (of 4) | tick |
+| B2 + ←/→ | scene / tileset (of 4, within bank) | beat |
+| B2 + ↑/↓ | movement (of 4) | tick |
+| B1+B2 + ↑/↓ | scene **bank** (of 4) | beat |
+| B1+B2 + ←/→ | tempo nudge ±1 frame (INT clock only) | instant |
 | B2 tap (alone) | overlay show/hide | instant (on release) |
 | B2 hold + B1 tap | freeze to primary (flat, momentary) | instant |
-| B1+B2 + ←/→ | tempo nudge ±1 frame (INT clock only) | instant |
+
+Latches were tightened from the original beat/bar to **tick** (palette/effect/movement)
+and **beat** (scene/bank) for live responsiveness — still on-grid, but near-instant.
+Scenes are **4 banks × 4** (16 total): B2+←/→ picks the slot, B1+B2+↑/↓ picks the bank.
 
 Edge-detect the D-pad (release before it steps again). B2 disambiguates tap-vs-hold on
 release: if any D-pad/B1 happened during the hold it was a modifier and the tap is

@@ -9,9 +9,8 @@ ASSET   := assets/look.svjb
 all: $(ROM)
 
 # Regenerate the embedded scene bank from the browser emitter.
-# ROM_SCENES caps the embedded scenes to what fits a 32 KB ROM (2 banks of 4)
-# until ROM paging lands; the browser tool always uses the full 16.
-ROM_SCENES ?= 8
+# ROM_SCENES = scenes embedded in the paged 96 KB ROM (4 banks of 4 = 16).
+ROM_SCENES ?= 16
 
 $(ASSET):
 	node ../tool/export-bank.js $@ $(ROM_SCENES)

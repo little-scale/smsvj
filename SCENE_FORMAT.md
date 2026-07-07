@@ -50,23 +50,32 @@ in any order.
 
 ---
 
-## 3. Bank header (20 bytes)
+## 3. Bank header (12 + `scene_count`×2 bytes)
+
+Scenes are organised as **4 banks × 4 slots = 16 scenes**. Both live selectors stay
+4-wide (2-bit) — palette/effect/movement/scene of 4, and the **scene bank** of 4 — so
+"everything is four" and per-index persistence hold. Effective scene index =
+`bank*4 + slot`.
 
 | off | size | field | notes |
 |----|----|----|----|
 | 0  | 4 | `magic` | ASCII `"SVJB"` |
 | 4  | 1 | `version` | format version = `0x01` |
 | 5  | 1 | `region` | bit0: 0 = 60 Hz target, 1 = 50 Hz. bit1: allow runtime region auto-detect |
-| 6  | 1 | `scene_count` | = 4 (reserved for future banks; runtime assumes 4) |
+| 6  | 1 | `scene_count` | number of scenes (≤ 16); runtime reads it |
 | 7  | 1 | `default_bpm` | INT clock tempo, 20–240. ROM derives frames/beat per region |
-| 8  | 1 | `boot_scene` | 0–3 |
+| 8  | 1 | `boot_scene` | 0–15 (`bank*4 + slot`) |
 | 9  | 1 | `boot_palette` | 0–3 |
 | 10 | 1 | `boot_effect` | 0–3 |
 | 11 | 1 | `boot_movement` | 0–3 |
-| 12 | 8 | `scene_ptr[4]` | array of four `u16`, each a bank-relative offset to a SCENE HEADER |
+| 12 | `scene_count`×2 | `scene_ptr[]` | `u16` each, a bank-relative offset to a SCENE HEADER |
 
-Total = 20 bytes (12 fixed fields + the four 2-byte scene pointers). Little-endian
-throughout.
+Little-endian throughout. **ROM paging note:** a 16-scene bank (~24.5 KB of name
+tables, which don't RLE-compress) exceeds 32 KB, so the console runtime pages the
+data through slot 2. The emitter therefore aligns scenes so none straddles a 16 KB
+page (`serialize(bank, {pageSize: 0x4000})`); scene pointers remain plain `u16`
+offsets into the (padded) bank. Emitting without `pageSize` yields a compact,
+unaligned bank for tools that address it linearly.
 
 ---
 

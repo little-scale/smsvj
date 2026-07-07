@@ -28,12 +28,23 @@ SVJ.svjb = (function () {
     });
   }
 
+  // Byte size of a serialized scene (prefix + sections).
+  function sceneSize(b) {
+    return 20 + b.tiles.length * 32 + b.layouts.length * LAYOUT_BYTES + 4 * 32 + 4 * 4 + 4 * 4;
+  }
+
   // Serialize a whole bank model -> Uint8Array. Throws on constraint violation.
-  function serialize(bank) {
+  // opts.pageSize (e.g. 0x4000) pads so no scene straddles a page boundary,
+  // which lets the ROM read each scene with a single page-in.
+  function serialize(bank, opts) {
+    const pageSize = (opts && opts.pageSize) || 0;
     const baked = bank.scenes.map(bakeScene);
     baked.forEach((b, i) => {
       if (b.tiles.length > 255) {
         throw new Error(`Scene ${i}: ${b.tiles.length} unique tiles exceeds 255.`);
+      }
+      if (pageSize && sceneSize(b) > pageSize) {
+        throw new Error(`Scene ${i}: ${sceneSize(b)} B exceeds page size ${pageSize}.`);
       }
     });
 
@@ -56,6 +67,11 @@ SVJ.svjb = (function () {
     const scenePtrs = [];
     bank.scenes.forEach((scene, si) => {
       const b = baked[si];
+      // Page alignment: pad so this scene fits wholly within one page.
+      if (pageSize) {
+        const room = pageSize - (w.len() % pageSize);
+        if (room < sceneSize(b)) { for (let k = 0; k < room; k++) w.u8(0); }
+      }
       const sceneStart = w.len();
       scenePtrs.push(sceneStart);
 

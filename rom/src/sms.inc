@@ -1,21 +1,28 @@
 ; ---------------------------------------------------------------------------
 ; SMSVJ ROM — hardware constants, memory map, SMS header, RAM variables.
-; 32 KB ROM, single linear slot ($0000-$7FFF). Holds up to ~2 banks of scenes
-; (24.5 KB of name tables don't compress, so all 4 banks / 16 scenes will need
-; ROM paging -- a follow-up). scene_count in the header caps the live index.
+; 96 KB paged ROM. Code + SMS header live in banks 0/1 ($0000-$7FFF, always
+; mapped). The .svjb bank data is paged through slot 2 ($8000-$BFFF): banks
+; 2..5 hold four 16 KB "pages", selected by writing $FFFF. The emitter aligns
+; every scene inside a single page, so a scene is read with one page-in.
 ; ---------------------------------------------------------------------------
 
 .MEMORYMAP
 DEFAULTSLOT 0
-SLOTSIZE $8000
+SLOTSIZE $4000
 SLOT 0 $0000
+SLOT 1 $4000
+SLOT 2 $8000
 .ENDME
 
 .ROMBANKMAP
-BANKSTOTAL 1
-BANKSIZE $8000
-BANKS 1
+BANKSTOTAL 6
+BANKSIZE $4000
+BANKS 6
 .ENDRO
+
+.DEFINE SLOT2_CTRL  $FFFF     ; mapper register: ROM bank -> slot 2
+.DEFINE DATA_BANK0  2         ; first data page (holds the bank header)
+.DEFINE BANKHDR     $8000     ; slot 2 base = start of the paged-in page
 
 .SMSTAG                 ; SEGA "TMR SEGA" header at $7FF0
 .COMPUTESMSCHECKSUM     ; wlalink patches the checksum
