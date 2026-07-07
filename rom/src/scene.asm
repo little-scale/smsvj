@@ -47,6 +47,9 @@ bank_init:
   ld (overlay),a
   ld (freeze),a
   ld (mv_phase),a
+  ld (tiles_dirty),a
+  ld hl,$ACE1                 ; nonzero LFSR seed
+  ld (lfsr),hl
   call clock_compute_fpt
   call scene_resolve
   call scene_load
@@ -111,6 +114,9 @@ scene_load:
   add hl,hl
   add hl,hl
   add hl,hl                  ; HL = count*32
+  ld (tile_bytes),hl         ; DATAMOSH range
+  xor a
+  ld (tiles_dirty),a         ; freshly uploaded = clean
   ld b,h
   ld c,l                     ; BC = length
   ld l,(ix+SC_OFF_TILES)
@@ -192,12 +198,21 @@ palette_reload_live:
 
 ; Recompose CRAM = palette cur_pal, then apply the sticky effect on top.
 recompose:
+  call read_effect_record     ; decode current effect -> fx_type first
+  ; if the pattern data was moshed and we're no longer DATAMOSH, restore tiles
+  ld a,(tiles_dirty)
+  or a
+  jr z,rc_disp
+  ld a,(fx_type)
+  cp 7                        ; DATAMOSH
+  jr z,rc_disp
+  call tiles_reload
+rc_disp:
   ; display on (BLANK will turn it back off if selected)
   ld a,$E0
   ld b,$81
   call vdp_reg
   call palette_reload_live
-  call read_effect_record
   ld a,(fx_type)
   cp 1
   jr z,fx_layout
@@ -478,5 +493,84 @@ freeze_flatten:
   ld a,c
   out (VDP_DATA),a
   djnz -
+  ret
+
+; ---- DATAMOSH (effect 0x07) ----------------------------------------------
+
+; Re-upload the scene's clean tiles to VRAM $0000 (undo the mosh).
+tiles_reload:
+  ld ix,(scene_addr)
+  ld a,(ix+SC_TILECOUNT)
+  ld l,a
+  ld h,0
+  add hl,hl
+  add hl,hl
+  add hl,hl
+  add hl,hl
+  add hl,hl                  ; count*32
+  ld b,h
+  ld c,l
+  ld l,(ix+SC_OFF_TILES)
+  ld h,(ix+SC_OFF_TILES+1)
+  ld de,(scene_addr)
+  add hl,de
+  ex de,hl                   ; DE = src
+  ld hl,VRAM_TILES
+  call copy_to_vram
+  xor a
+  ld (tiles_dirty),a
+  ret
+
+; Overwrite fx_p0 random pattern bytes this tick (progressive melt to noise).
+corrupt_step:
+  ld a,(fx_p0)
+  or a
+  ret z
+  ld b,a
+cs_loop:
+  push bc
+  call lfsr_next             ; HL = lfsr
+  ld a,h
+  push af                    ; keep value byte
+  ld a,h
+  and $07
+  ld h,a                     ; HL = 0..2047
+  ; fold into [0, tile_bytes)
+  ld de,(tile_bytes)
+  ld a,h
+  cp d
+  jr c,cs_ok
+  jr nz,cs_sub
+  ld a,l
+  cp e
+  jr c,cs_ok
+cs_sub:
+  or a
+  sbc hl,de
+cs_ok:
+  ld a,l
+  out (VDP_CTRL),a
+  ld a,h
+  or $40
+  out (VDP_CTRL),a
+  pop af                     ; value byte
+  out (VDP_DATA),a
+  pop bc
+  djnz cs_loop
+  ld a,1
+  ld (tiles_dirty),a
+  ret
+
+; 16-bit Galois LFSR (taps $B400), advanced once.
+lfsr_next:
+  ld hl,(lfsr)
+  srl h
+  rr l
+  jr nc,+
+  ld a,h
+  xor $B4
+  ld h,a
++:
+  ld (lfsr),hl
   ret
 .ENDS

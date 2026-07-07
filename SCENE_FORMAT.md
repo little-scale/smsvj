@@ -194,6 +194,12 @@ whichever palette is current, so they compose.
 | 0x04 | FREEZE_LATCH | primary override, `0xFF` = palette's primary | — | — |
 | 0x05 | WOBBLE | amplitude (px) | frequency | — |
 | 0x06 | BLANK | backdrop colour index (0–31) | — | — |
+| 0x07 | DATAMOSH | bytes/tick (mosh rate) | — | — |
+
+DATAMOSH is a live "corruption": while selected, each tick it overwrites `p0`
+pseudo-random bytes (16-bit LFSR) in the VRAM pattern area, so the shared 8×8 tiles
+progressively melt to noise. Deselecting it (or a scene change) re-uploads the clean
+tiles. It composes with movement/palette (which touch CRAM, not patterns).
 
 Effects are **latched to the beat** and are sticky (they persist until you cycle to a
 different effect). INVERT and ROTATE apply once on latch to the live CRAM range;

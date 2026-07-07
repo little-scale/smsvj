@@ -21,7 +21,7 @@
 
   const $ = (id) => document.getElementById(id);
   const scene = () => bank.scenes[ui.curScene];
-  const EFFECT_NAMES = ["NONE", "LAYOUT", "INVERT", "ROTATE", "FREEZE_LATCH", "WOBBLE", "BLANK"];
+  const EFFECT_NAMES = ["NONE", "LAYOUT", "INVERT", "ROTATE", "FREEZE_LATCH", "WOBBLE", "BLANK", "DATAMOSH"];
   const MOVE_NAMES = ["STATIC", "CYCLE_FWD", "CYCLE_BACK", "PINGPONG"];
 
   // ---- baking ----
@@ -232,7 +232,26 @@
       effect: fx, freeze: ui.freeze, primary: sc.primary[palIdx],
     });
     const wobble = fx.type === 0x05 ? { amp: fx.p0 | 0, freq: (fx.p1 | 0) || 1, phase: ui.wobblePhase } : null;
-    R.renderLayout(pvImg, b.layouts[layoutIdx], b.tiles, eff.pal, eff.blank, wobble);
+
+    // DATAMOSH: overwrite random tile pixels each frame in a working copy, so the
+    // shapes melt to noise while held; the copy is rebuilt clean when it's off or
+    // the scene changes (mirrors the ROM's tiles_reload).
+    let tilesForRender = b.tiles;
+    if (fx.type === 0x07) {
+      if (!ui.moshTiles || ui.moshBase !== b) {
+        ui.moshTiles = b.tiles.map((t) => t.map((r) => r.slice()));
+        ui.moshBase = b;
+      }
+      const rate = (fx.p0 | 0) || 24;
+      for (let k = 0; k < rate; k++) {
+        const ti = (Math.random() * ui.moshTiles.length) | 0;
+        ui.moshTiles[ti][(Math.random() * 8) | 0][(Math.random() * 8) | 0] = (Math.random() * 16) | 0;
+      }
+      tilesForRender = ui.moshTiles;
+    } else {
+      ui.moshTiles = null; ui.moshBase = null;
+    }
+    R.renderLayout(pvImg, b.layouts[layoutIdx], tilesForRender, eff.pal, eff.blank, wobble);
     pvCtx.putImageData(pvImg, 0, 0);
 
     const t = clk.state.tick;

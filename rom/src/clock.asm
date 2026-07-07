@@ -85,6 +85,11 @@ clock_tick:
   ld (mv_count),a
 ct_beat:
   call latch_fast            ; palette/effect/movement latch every TICK (snappy)
+  ld a,(fx_type)             ; DATAMOSH corrupts tile patterns each tick
+  cp 7
+  jr nz,ct_scene
+  call corrupt_step
+ct_scene:
   ld a,(tick_lo)
   and 3
   ret nz                     ; scene latches on the beat (every 4 ticks)
