@@ -8,7 +8,7 @@
 
   // ---- state ----
   const SRC = { tiles: [], cols: 16 };          // source tile sheet (flat, `cols` wide)
-  const ROM = { buf: null, off: 0, palGG: false };
+  const ROM = { buf: null, off: 0, palGG: false, format: "raw" };
   let pal = greyRamp();                          // 32-entry CRAM (bank1 mirrors bank0)
   let brush = { w: 1, h: 1, tiles: [[blankTile()]] };
   let brushFlip = 0;                             // bit0 = H, bit1 = V
@@ -107,8 +107,9 @@
 
   // ---- ROM source ----
   function romSheetTiles() {
+    const bytes = SVJ.romdecode.decode(ROM.buf, ROM.off, ROM.format);
     const out = [];
-    for (let i = 0; i < 256; i++) out.push(T.decode(ROM.buf, ROM.off + i * 32));
+    for (let i = 0; i < 256; i++) out.push(T.decode(bytes, i * 32));
     SRC.tiles = out; SRC.cols = 16; renderSrc();
   }
   function loadRom(file) {
@@ -131,8 +132,10 @@
     }
     return out;
   }
+  $("romFmt").innerHTML = SVJ.romdecode.FORMATS.map((f) => `<option value="${f.key}">${f.label}</option>`).join("");
+  $("romFmt").onchange = (e) => { ROM.format = e.target.value; $("romOff").step = ROM.format === "raw" ? 32 : 1; if (ROM.buf) romSheetTiles(); };
   $("romFile").onchange = (e) => e.target.files[0] && loadRom(e.target.files[0]);
-  $("romOff").oninput = (e) => { ROM.off = parseInt(e.target.value, 10) & ~31; $("vRomOff").textContent = "0x" + ROM.off.toString(16); romSheetTiles(); };
+  $("romOff").oninput = (e) => { const v = parseInt(e.target.value, 10); ROM.off = ROM.format === "raw" ? (v & ~31) : v; $("vRomOff").textContent = "0x" + ROM.off.toString(16); romSheetTiles(); };
   $("romGrabPal").onclick = () => { pal = decodePalAt(ROM.off); afterPalChange(); setStatus(`palette ← ROM @ 0x${ROM.off.toString(16)}`, "ok"); };
   $("romPalGG").onchange = (e) => { ROM.palGG = e.target.checked; };
 

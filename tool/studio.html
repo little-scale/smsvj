@@ -39,7 +39,8 @@
         </div>
         <label class="romofflbl">Offset <b id="vRomOff" class="mono">0x0</b>
           <input id="romOff" type="range" min="0" max="0" step="32" value="0" disabled /></label>
-        <div class="row"><button id="romGrabPal" disabled>Grab palette here</button>
+        <div class="row"><label>Decode <select id="romFmt"></select></label>
+          <button id="romGrabPal" disabled>Grab palette here</button>
           <label class="chk"><input type="checkbox" id="romPalGG" /> 12-bit (GG)</label></div>
       </div>
 
@@ -56,8 +57,6 @@
       </div>
 
       <div class="srcwrap"><canvas id="srcSheet" class="pixelcanvas srcsheet"></canvas></div>
-      <div class="solids"><span class="hint">solid brush (also sets the pencil colour)</span><div class="cram" id="solidStrip"></div></div>
-      <div class="slots"><span class="hint">brush slots — click empty to save, filled to recall, shift-click to clear</span><div class="slotrow" id="slotRow"></div></div>
       <div class="row">
         <span class="hint" id="brushInfo">pick a tile — click, or drag a group</span>
         <span class="flipbtns">flip <button id="flipH">H</button><button id="flipV">V</button></span>
@@ -68,6 +67,8 @@
     <section class="panel">
       <h2>Compose <span id="tgtInfo" class="mono"></span></h2>
       <canvas id="tgtCanvas" class="pixelcanvas tgtcanvas"></canvas>
+      <div class="solids"><span class="hint">solid brush (also sets the pencil colour)</span><div class="cram" id="solidStrip"></div></div>
+      <div class="slots"><span class="hint">brush slots — click empty to save, filled to recall, shift-click to clear</span><div class="slotrow" id="slotRow"></div></div>
       <div class="row">
         <label class="chk"><input type="checkbox" id="selectMode" /> select</label>
         <label class="chk"><input type="checkbox" id="eraser" /> eraser</label>
@@ -113,6 +114,7 @@
   <script src="js/tiles.js"></script>
   <script src="js/fold.js"></script>
   <script src="js/render.js"></script>
+  <script src="js/romdecode.js"></script>
   <script src="js/studio.js"></script>
 </body>
 </html>

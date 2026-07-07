@@ -524,13 +524,16 @@
   // ---- ROM tile importer (drop a ROM, select a block, fill the source) ----
   // Reads raw Mode 4 tiles from any file. The selected WxH tile block tiles across the
   // whole source, then folds/dedups/bakes like any other pattern.
-  const ROM = { buf: null, off: 0, sw: 16, sh: 16, sel: null, palGG: false };
+  const ROM = { buf: null, off: 0, sw: 16, sh: 16, sel: null, palGG: false, format: "raw", tileBytes: null };
   const romSheet = $("romSheet");
   const romCtx = romSheet.getContext("2d");
   romSheet.width = ROM.sw * 8; romSheet.height = ROM.sh * 8;
   let romDrag = null;
 
-  const romTileOff = (col, row) => ROM.off + (row * ROM.sw + col) * 32;
+  // Tiles come from the decoded byte stream (raw = a view from the offset; a compressed
+  // format decompresses the block starting at the offset). Tile k = tileBytes[k*32..].
+  const romTileByte = (col, row) => (row * ROM.sw + col) * 32;
+  function recomputeRomTiles() { if (ROM.buf) ROM.tileBytes = SVJ.romdecode.decode(ROM.buf, ROM.off, ROM.format); }
 
   // Set the ROM offset (byte-precise) and refresh everything that reads it.
   function setRomOff(off) {
@@ -538,6 +541,7 @@
     const slider = $("romOff");
     slider.value = Math.min(ROM.off, parseInt(slider.max, 10));
     $("vRomOff").textContent = "0x" + ROM.off.toString(16);
+    recomputeRomTiles();
     renderRomSheet(); renderRomPalStrip(); updateRomSel();
   }
 
@@ -546,7 +550,7 @@
     const img = romCtx.createImageData(romSheet.width, romSheet.height);
     for (let row = 0; row < ROM.sh; row++) {
       for (let col = 0; col < ROM.sw; col++) {
-        const t = SVJ.tiles.decode(ROM.buf, romTileOff(col, row));
+        const t = SVJ.tiles.decode(ROM.tileBytes, romTileByte(col, row));
         for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
           const g = (t[r][c] & 15) * 17;                       // greyscale so structure reads
           const p = ((row * 8 + r) * romSheet.width + (col * 8 + c)) * 4;
@@ -569,8 +573,8 @@
   }
   function updateRomSel() {
     if (!ROM.sel) { $("romSel").textContent = "drag to select a tile block"; return; }
-    const off = romTileOff(ROM.sel.x, ROM.sel.y);
-    $("romSel").textContent = `sel ${ROM.sel.w}×${ROM.sel.h} tiles @ 0x${off.toString(16)}`;
+    const at = ROM.format === "raw" ? `@ 0x${(ROM.off + romTileByte(ROM.sel.x, ROM.sel.y)).toString(16)}` : `tile (${ROM.sel.x},${ROM.sel.y})`;
+    $("romSel").textContent = `sel ${ROM.sel.w}×${ROM.sel.h} tiles ${at}`;
     $("romFill").disabled = false;
   }
   romSheet.addEventListener("mousedown", (e) => {
@@ -676,7 +680,7 @@
     for (let y = 0; y < g.pxH; y++) px.push(new Array(g.pxW).fill(0));
     for (let ty = 0; ty < g.tilesH; ty++) {
       for (let tx = 0; tx < g.tilesW; tx++) {
-        const t = SVJ.tiles.decode(ROM.buf, romTileOff(ROM.sel.x + (tx % ROM.sel.w), ROM.sel.y + (ty % ROM.sel.h)));
+        const t = SVJ.tiles.decode(ROM.tileBytes, romTileByte(ROM.sel.x + (tx % ROM.sel.w), ROM.sel.y + (ty % ROM.sel.h)));
         for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) px[ty * 8 + r][tx * 8 + c] = t[r][c];
       }
     }
@@ -685,8 +689,10 @@
     rebake(ui.curScene);
     setStatus(`filled tileset ${ui.curScene} from ROM (${ROM.sel.w}×${ROM.sel.h} block)`, "ok");
   }
+  $("romFmt").innerHTML = SVJ.romdecode.FORMATS.map((f) => `<option value="${f.key}">${f.label}</option>`).join("");
+  $("romFmt").onchange = (e) => { ROM.format = e.target.value; $("romOff").step = ROM.format === "raw" ? 32 : 1; if (ROM.buf) setRomOff(ROM.off); };
   $("romFile").onchange = (e) => { if (e.target.files[0]) loadRom(e.target.files[0]); };
-  $("romOff").oninput = (e) => setRomOff(parseInt(e.target.value, 10) & ~31);
+  $("romOff").oninput = (e) => setRomOff(ROM.format === "raw" ? (parseInt(e.target.value, 10) & ~31) : parseInt(e.target.value, 10));
   $("romFill").onclick = fillSourceFromRom;
   const romImp = $("romImp");
   ["dragover", "dragenter"].forEach((ev) => romImp.addEventListener(ev, (e) => { e.preventDefault(); romImp.classList.add("drag"); }));
