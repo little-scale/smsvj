@@ -133,3 +133,6 @@ button.on { background: var(--accent2); color: #2a0620; border-color: var(--acce
 .flipbtns { margin-left: auto; display: flex; align-items: center; gap: .25rem; color: var(--dim); font-size: .7rem; }
 .flipbtns button { padding: .2rem .5rem; }
 .flipbtns button.on { background: var(--accent2); color: #2a0620; border-color: var(--accent2); }
+.solids { margin: .3rem 0 .5rem; }
+.solids .hint { display: block; margin-bottom: .25rem; }
+.solids .cram i { cursor: pointer; }

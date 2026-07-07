@@ -324,8 +324,20 @@
     pctx.putImageData(pvImg, 0, 0);
   }
 
+  // ---- solid (macro) brush: a single 8x8 tile of one palette index ----
+  function solidTile(i) { return Array.from({ length: 8 }, () => new Array(8).fill(i & 15)); }
+  function buildSolidStrip() {
+    const host = $("solidStrip"); host.innerHTML = "";
+    for (let i = 0; i < 16; i++) {
+      const el = document.createElement("i");
+      el.style.background = C.toHex(pal[i]); el.title = "solid index " + i;
+      el.onclick = () => { brushFlip = 0; $("flipH").classList.remove("on"); $("flipV").classList.remove("on"); brush = { w: 1, h: 1, tiles: [[solidTile(i)]] }; updateBrushInfo("solid " + i); };
+      host.appendChild(el);
+    }
+  }
+
   // ---- palette editor ----
-  function afterPalChange() { buildPalStrip(); renderSrc(); renderTarget(); renderPreview(); }
+  function afterPalChange() { buildPalStrip(); buildSolidStrip(); renderSrc(); renderTarget(); renderPreview(); }
   function buildPalStrip() {
     const host = $("palStrip"); host.innerHTML = "";
     for (let i = 0; i < 16; i++) {
@@ -375,5 +387,5 @@
 
   // ---- init ----
   newTarget("quarter");
-  buildPalStrip(); buildGamut(); renderSrc(); renderTarget(); renderPreview();
+  buildPalStrip(); buildSolidStrip(); buildGamut(); renderSrc(); renderTarget(); renderPreview();
 })();
