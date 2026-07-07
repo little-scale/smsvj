@@ -200,6 +200,9 @@ the runtime indexes them 0–8. `off_movements` locates the end, so the count is
 | 0x08 | SCRAMBLE | cells/tick | — | — |
 | 0x09 | CHURN | corrupt bytes/tick | heal bytes/tick | — |
 | 0x0A | SMEAR | cells/tick | drag offset (cells) | — |
+| 0x0B | MORPH | cells/tick | — | — |
+| 0x0C | XOR | bytes/tick | — | — |
+| 0x0D | STAMP | tiles/tick | — | — |
 
 A live **corruption suite** (16-bit LFSR), all reset when you cycle away or change scene:
 - **MELT** overwrites `p0` random bytes/tick in the VRAM pattern area → the shared 8×8
@@ -211,6 +214,15 @@ A live **corruption suite** (16-bit LFSR), all reset when you cycle away or chan
   into a kaleidoscopic churn. Non-destructive to patterns; reset re-uploads the layout.
 - **SMEAR** copies `p0` name-table cells/tick to a neighbour `p1` cells away, dragging
   the pattern in a direction (classic datamosh streaking). Reset re-uploads the layout.
+- **MORPH** drifts `p0` name-table cells' tile index by +1 (wrapping tile_count), so
+  shapes melt into adjacent shapes. Non-destructive; reset re-uploads the layout.
+- **XOR** bit-flips `p0` pattern bytes/tick (read-modify-write) — colour/edge inversions,
+  a different texture than MELT's overwrite. Reset re-uploads the tiles.
+- **STAMP** copies `p0` clean tiles/tick over random tiles, collapsing the tile set toward
+  fewer shapes. Reset re-uploads the tiles.
+
+The current effect dial is all corruption: down = SMEAR-D / STAMP / XOR / MORPH, centre =
+NONE, up = SCRAMBLE / SMEAR-H / SMEAR-V / CHURN.
 
 The runtime runs the active corruption every tick and once more on the beat (a rhythmic
 kick). Effect slots vary by scene bank so all modes are reachable across the 16 scenes.

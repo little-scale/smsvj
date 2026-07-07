@@ -63,17 +63,18 @@ SVJ.scene = (function () {
   // runtime's speed control). SCRAMBLE p0=flip cells,p1=tile swaps; SMEAR
   // p0=cells,p1=drag offset (1=horizontal, 32=one row = vertical).
   const EFFECTS = () => [
-    fx(0x06, 0, 0, 0),      // 0 BLANK        (down end)
-    fx(0x03, -1, 1, 15),    // 1 ROTATE back
-    fx(0x03, 1, 1, 15),     // 2 ROTATE fwd
-    fx(0x02, 0, 1, 15),     // 3 INVERT
-    fx(0x00, 0, 0, 0),      // 4 NONE         (centre)
-    fx(0x08, 8, 3, 0),      // 5 SCRAMBLE
+    fx(0x0a, 12, 33, 0),    // 0 SMEAR-D  (diagonal drag)   down end
+    fx(0x0d, 3, 0, 0),      // 1 STAMP    (tile convergence)
+    fx(0x0c, 10, 0, 0),     // 2 XOR      (bit-flip patterns)
+    fx(0x0b, 16, 0, 0),     // 3 MORPH    (tile-index drift)
+    fx(0x00, 0, 0, 0),      // 4 NONE     (centre)
+    fx(0x08, 8, 3, 0),      // 5 SCRAMBLE (flip + swap)
     fx(0x0a, 12, 1, 0),     // 6 SMEAR-H
     fx(0x0a, 12, 32, 0),    // 7 SMEAR-V
-    fx(0x09, 8, 6, 0),      // 8 CHURN        (up end)
+    fx(0x09, 8, 6, 0),      // 8 CHURN    (boil)            up end
   ];
-  const FLOW = () => [mv(0x01, 1, 1, 15), mv(0x02, 2, 1, 15), mv(0x03, 1, 1, 15), mv(0x00, 1, 0, 0)];
+  // slot 0 = CYCLE_BACK so radial scenes flow OUTWARD by default (fwd read as inward).
+  const FLOW = () => [mv(0x02, 1, 1, 15), mv(0x01, 2, 1, 15), mv(0x03, 1, 1, 15), mv(0x00, 1, 0, 0)];
 
   const G = (o) => Object.assign(SVJ.generators.defaults(), o);
 

@@ -226,18 +226,20 @@ palette_reload_live:
 ; Recompose CRAM = palette cur_pal, then apply the sticky effect on top.
 recompose:
   call read_effect_record     ; decode current effect -> fx_type first
-  ; restore tiles if moshed and no longer a pattern-mosh (MELT 7 / CHURN 9)
+  ; restore tiles if moshed and no longer a pattern-mosh (CHURN 9 / XOR 12 / STAMP 13)
   ld a,(tiles_dirty)
   or a
   jr z,rc_ck_layout
   ld a,(fx_type)
-  cp 7
-  jr z,rc_ck_layout
   cp 9
+  jr z,rc_ck_layout
+  cp 12
+  jr z,rc_ck_layout
+  cp 13
   jr z,rc_ck_layout
   call tiles_reload
 rc_ck_layout:
-  ; restore name table if a layout-corrupting effect (SCRAMBLE 8 / SMEAR 10) left
+  ; restore name table if a layout-corruptor left (SCRAMBLE 8 / SMEAR 10 / MORPH 11)
   ld a,(layout_dirty)
   or a
   jr z,rc_disp
@@ -245,6 +247,8 @@ rc_ck_layout:
   cp 8
   jr z,rc_disp
   cp 10
+  jr z,rc_disp
+  cp 11
   jr z,rc_disp
   call layout_reload
 rc_disp:
@@ -837,6 +841,183 @@ sme_wrok:
   ld (layout_dirty),a
   ret
 
+; MORPH: drift fx_p0 name-table cells' tile index by +1 (wrapping tile_count),
+; so shapes melt into adjacent shapes. Non-destructive (layout_reload restores).
+morph_step:
+  ld a,(fx_p0)
+  or a
+  ret z
+  ld b,a
+mph_loop:
+  push bc
+  call lfsr_next
+  ld a,h
+  and $07
+  ld h,a
+  ld a,l
+  and $FE
+  ld l,a
+  ld de,LAYOUT_BYTES
+  ld a,h
+  cp d
+  jr c,mph_ok
+  jr nz,mph_sub
+  ld a,l
+  cp e
+  jr c,mph_ok
+mph_sub:
+  or a
+  sbc hl,de
+mph_ok:
+  ld de,$3800
+  add hl,de
+  push hl
+  ld a,l
+  out (VDP_CTRL),a
+  ld a,h
+  out (VDP_CTRL),a
+  nop
+  in a,(VDP_DATA)
+  ld e,a                     ; word low (tile index, <256)
+  in a,(VDP_DATA)
+  ld d,a                     ; word high (flip/bank)
+  ld a,e
+  inc a                      ; index + 1
+  ld hl,tile_count
+  cp (hl)
+  jr c,mph_setidx
+  xor a                      ; wrap to 0
+mph_setidx:
+  ld e,a
+  pop hl
+  ld a,l
+  out (VDP_CTRL),a
+  ld a,h
+  or $40
+  out (VDP_CTRL),a
+  ld a,e
+  out (VDP_DATA),a
+  ld a,d
+  out (VDP_DATA),a
+  pop bc
+  djnz mph_loop
+  ld a,1
+  ld (layout_dirty),a
+  ret
+
+; XOR: bit-flip fx_p0 pattern bytes with LFSR values (colour/edge inversions).
+xor_step:
+  ld a,(fx_p0)
+  or a
+  ret z
+  ld b,a
+xor_loop:
+  push bc
+  call lfsr_next
+  ld a,h
+  and $07
+  ld h,a
+  ld de,(tile_bytes)
+  ld a,h
+  cp d
+  jr c,xor_ok
+  jr nz,xor_sub
+  ld a,l
+  cp e
+  jr c,xor_ok
+xor_sub:
+  or a
+  sbc hl,de
+xor_ok:
+  push hl
+  ld a,l
+  out (VDP_CTRL),a
+  ld a,h
+  out (VDP_CTRL),a
+  nop
+  in a,(VDP_DATA)
+  ld c,a                     ; current byte
+  call lfsr_next
+  ld a,h
+  xor c                      ; flip bits
+  ld c,a
+  pop hl
+  ld a,l
+  out (VDP_CTRL),a
+  ld a,h
+  or $40
+  out (VDP_CTRL),a
+  ld a,c
+  out (VDP_DATA),a
+  pop bc
+  djnz xor_loop
+  ld a,1
+  ld (tiles_dirty),a
+  ret
+
+; STAMP: copy fx_p0 clean ROM tiles over random tiles in VRAM, so the tile set
+; collapses toward fewer shapes. Reversible (tiles_reload).
+stamp_step:
+  ld a,(fx_p0)
+  or a
+  ret z
+  ld b,a
+stm_loop:
+  push bc
+  call lfsr_next             ; source tile index
+  ld a,l
+  ld hl,mosh_mask
+  and (hl)
+  ld hl,tile_count
+  cp (hl)
+  jr c,stm_srcok
+  sub (hl)
+stm_srcok:
+  ld l,a
+  ld h,0
+  add hl,hl
+  add hl,hl
+  add hl,hl
+  add hl,hl
+  add hl,hl                  ; src*32
+  ld de,(tiles_src)
+  add hl,de
+  ld (tmp_ptr),hl            ; clean source in ROM
+  call lfsr_next             ; dest tile index
+  ld a,l
+  ld hl,mosh_mask
+  and (hl)
+  ld hl,tile_count
+  cp (hl)
+  jr c,stm_dstok
+  sub (hl)
+stm_dstok:
+  ld l,a
+  ld h,0
+  add hl,hl
+  add hl,hl
+  add hl,hl
+  add hl,hl
+  add hl,hl                  ; dest*32 (VRAM pattern offset)
+  ld a,l
+  out (VDP_CTRL),a
+  ld a,h
+  or $40
+  out (VDP_CTRL),a
+  ld hl,(tmp_ptr)
+  ld c,32
+stm_copy:
+  ld a,(hl)
+  out (VDP_DATA),a
+  inc hl
+  dec c
+  jr nz,stm_copy
+  pop bc
+  djnz stm_loop
+  ld a,1
+  ld (tiles_dirty),a
+  ret
+
 ; Dispatch the active corruption effect's per-tick step (also used as a beat kick).
 mosh_step:
   ld a,(fx_type)
@@ -848,6 +1029,12 @@ mosh_step:
   jr z,ms_chn
   cp 10
   jr z,ms_sme
+  cp 11
+  jr z,ms_mph
+  cp 12
+  jr z,ms_xor
+  cp 13
+  jr z,ms_stm
   ret
 ms_melt:
   jp corrupt_step
@@ -857,6 +1044,12 @@ ms_chn:
   jp churn_step
 ms_sme:
   jp smear_step
+ms_mph:
+  jp morph_step
+ms_xor:
+  jp xor_step
+ms_stm:
+  jp stamp_step
 
 ; 16-bit Galois LFSR (taps $B400), advanced once.
 lfsr_next:

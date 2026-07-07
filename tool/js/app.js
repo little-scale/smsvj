@@ -23,7 +23,8 @@
 
   const $ = (id) => document.getElementById(id);
   const scene = () => bank.scenes[ui.curScene];
-  const EFFECT_NAMES = ["NONE", "LAYOUT", "INVERT", "ROTATE", "FREEZE_LATCH", "WOBBLE", "BLANK", "MELT", "SCRAMBLE", "CHURN", "SMEAR"];
+  const EFFECT_NAMES = ["NONE", "LAYOUT", "INVERT", "ROTATE", "FREEZE_LATCH", "WOBBLE", "BLANK",
+    "MELT", "SCRAMBLE", "CHURN", "SMEAR", "MORPH", "XOR", "STAMP"];
   const MOVE_NAMES = ["STATIC", "CYCLE_FWD", "CYCLE_BACK", "PINGPONG"];
 
   // ---- baking ----
@@ -247,46 +248,53 @@
 
     let tilesForRender = b.tiles;
     let layoutForRender = b.layouts[layoutIdx];
-    if (fx.type === 0x07 || fx.type === 0x09) {
+    const patMosh = fx.type === 0x07 || fx.type === 0x09 || fx.type === 0x0c || fx.type === 0x0d;
+    const layMosh = fx.type === 0x08 || fx.type === 0x0a || fx.type === 0x0b;
+    if (patMosh) {
       if (!ui.moshTiles || ui.moshBase !== b) {
         ui.moshTiles = b.tiles.map((t) => t.map((r) => r.slice()));
         ui.moshBase = b;
       }
-      const rate = ((fx.p0 | 0) || 24) * kick;
+      const rate = ((fx.p0 | 0) || 8) * kick, T = ui.moshTiles;
       for (let k = 0; k < rate; k++) {
-        const ti = (Math.random() * ui.moshTiles.length) | 0;
-        ui.moshTiles[ti][(Math.random() * 8) | 0][(Math.random() * 8) | 0] = (Math.random() * 16) | 0;
+        const ti = (Math.random() * T.length) | 0, py = (Math.random() * 8) | 0, px = (Math.random() * 8) | 0;
+        if (fx.type === 0x0c) T[ti][py][px] ^= (Math.random() * 16) | 0;        // XOR bit-flip
+        else if (fx.type === 0x0d) {                                           // STAMP tile copy
+          const src = (Math.random() * b.tiles.length) | 0, dst = (Math.random() * T.length) | 0;
+          T[dst] = b.tiles[src].map((r) => r.slice());
+        } else T[ti][py][px] = (Math.random() * 16) | 0;                       // MELT/CHURN noise
       }
       if (fx.type === 0x09) {                 // CHURN heals p1 pixels back
         const heal = ((fx.p1 | 0) || 16) * kick;
         for (let k = 0; k < heal; k++) {
-          const ti = (Math.random() * ui.moshTiles.length) | 0;
-          const py = (Math.random() * 8) | 0, px = (Math.random() * 8) | 0;
-          ui.moshTiles[ti][py][px] = b.tiles[ti][py][px];
+          const ti = (Math.random() * T.length) | 0, py = (Math.random() * 8) | 0, px = (Math.random() * 8) | 0;
+          T[ti][py][px] = b.tiles[ti][py][px];
         }
       }
-      tilesForRender = ui.moshTiles;
+      tilesForRender = T;
     } else { ui.moshTiles = null; ui.moshBase = null; }
 
-    if (fx.type === 0x08 || fx.type === 0x0a) { // layout-corrupting effects
+    if (layMosh) {
       if (!ui.moshLayout || ui.moshLBase !== layoutForRender) {
         ui.moshLayout = layoutForRender.slice();
         ui.moshLBase = layoutForRender;
       }
-      const L = ui.moshLayout.length;
+      const L = ui.moshLayout.length, nt = b.tiles.length;
       if (fx.type === 0x08) {                  // SCRAMBLE: flip toggles + tile swaps
         const cells = ((fx.p0 | 0) || 24) * kick;
-        for (let k = 0; k < cells; k++) {
-          ui.moshLayout[(Math.random() * L) | 0] ^= ((Math.random() * 8) | 0) << 9;
-        }
+        for (let k = 0; k < cells; k++) ui.moshLayout[(Math.random() * L) | 0] ^= ((Math.random() * 8) | 0) << 9;
         const swaps = (fx.p1 | 0) * kick;
         for (let k = 0; k < swaps; k++) {
-          ui.moshLayout[(Math.random() * L) | 0] =
-            ((Math.random() * b.tiles.length) | 0) | (((Math.random() * 8) | 0) << 9);
+          ui.moshLayout[(Math.random() * L) | 0] = ((Math.random() * nt) | 0) | (((Math.random() * 8) | 0) << 9);
+        }
+      } else if (fx.type === 0x0b) {           // MORPH: drift tile index +1 (wrap)
+        const cells = ((fx.p0 | 0) || 16) * kick;
+        for (let k = 0; k < cells; k++) {
+          const ci = (Math.random() * L) | 0, w = ui.moshLayout[ci];
+          ui.moshLayout[ci] = (w & 0xfe00) | (((w & 0x1ff) + 1) % nt);
         }
       } else {                                 // SMEAR: drag cells to a neighbour
-        const cells = ((fx.p0 | 0) || 40) * kick;
-        const off = (fx.p1 | 0) || 1;
+        const cells = ((fx.p0 | 0) || 12) * kick, off = (fx.p1 | 0) || 1;
         for (let k = 0; k < cells; k++) {
           const ci = (Math.random() * L) | 0;
           ui.moshLayout[(ci + off) % L] = ui.moshLayout[ci];
