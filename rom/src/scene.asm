@@ -234,12 +234,14 @@ recompose:
   jr z,rc_ck_layout
   call tiles_reload
 rc_ck_layout:
-  ; restore name table if scrambled and no longer SCRAMBLE (8)
+  ; restore name table if a layout-corrupting effect (SCRAMBLE 8 / SMEAR 10) left
   ld a,(layout_dirty)
   or a
   jr z,rc_disp
   ld a,(fx_type)
   cp 8
+  jr z,rc_disp
+  cp 10
   jr z,rc_disp
   call layout_reload
 rc_disp:
@@ -764,6 +766,74 @@ scr_done:
   ld (layout_dirty),a
   ret
 
+; SMEAR: copy fx_p0 random name-table cells to a neighbour (offset fx_p1 cells),
+; dragging the pattern in a direction -> datamosh streaking. Reversible.
+smear_step:
+  ld a,(fx_p0)
+  or a
+  ret z
+  ld b,a
+sme_loop:
+  push bc
+  call lfsr_next             ; source cell address
+  ld a,h
+  and $07
+  ld h,a
+  ld a,l
+  and $FE
+  ld l,a
+  ld de,LAYOUT_BYTES
+  ld a,h
+  cp d
+  jr c,sme_ok
+  jr nz,sme_sub
+  ld a,l
+  cp e
+  jr c,sme_ok
+sme_sub:
+  or a
+  sbc hl,de
+sme_ok:
+  ld de,$3800
+  add hl,de                  ; HL = source cell address
+  ; read source word -> DE
+  ld a,l
+  out (VDP_CTRL),a
+  ld a,h
+  out (VDP_CTRL),a
+  nop
+  in a,(VDP_DATA)
+  ld e,a
+  in a,(VDP_DATA)
+  ld d,a
+  ; dest = source + fx_p1 cells (*2 bytes), wrapped into the name table
+  ld a,(fx_p1)
+  add a,a
+  ld c,a
+  ld b,0
+  add hl,bc
+  ld a,h
+  cp $3E                     ; >= $3E00 -> past the 1536-byte table
+  jr c,sme_wrok
+  ld bc,LAYOUT_BYTES
+  or a
+  sbc hl,bc
+sme_wrok:
+  ld a,l
+  out (VDP_CTRL),a
+  ld a,h
+  or $40
+  out (VDP_CTRL),a
+  ld a,e
+  out (VDP_DATA),a
+  ld a,d
+  out (VDP_DATA),a
+  pop bc
+  djnz sme_loop
+  ld a,1
+  ld (layout_dirty),a
+  ret
+
 ; Dispatch the active corruption effect's per-tick step (also used as a beat kick).
 mosh_step:
   ld a,(fx_type)
@@ -773,6 +843,8 @@ mosh_step:
   jr z,ms_scr
   cp 9
   jr z,ms_chn
+  cp 10
+  jr z,ms_sme
   ret
 ms_melt:
   jp corrupt_step
@@ -780,6 +852,8 @@ ms_scr:
   jp scramble_step
 ms_chn:
   jp churn_step
+ms_sme:
+  jp smear_step
 
 ; 16-bit Galois LFSR (taps $B400), advanced once.
 lfsr_next:

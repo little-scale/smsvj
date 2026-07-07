@@ -58,9 +58,12 @@ SVJ.scene = (function () {
 
   // Shared axis config: NONE/INVERT/ROTATE/BLANK, and 4 movements where slot 0
   // FLOWS (boot movement) and slot 3 is STATIC to stop motion.
-  // Corruption suite on the effects axis: clean / melt / churn / scramble.
-  // SCRAMBLE p0 = flip-toggle cells, p1 = tile-swap cells (SCRAMBLE++).
-  const EFFECTS = () => [fx(0x00, 0, 0, 0), fx(0x07, 24, 0, 0), fx(0x09, 20, 16, 0), fx(0x08, 24, 8, 0)];
+  // Corruption suite. Banks get different "personalities": even banks lead with
+  // MELT, odd banks with SMEAR, so all modes are reachable across the 16 scenes.
+  // (SCRAMBLE p0=flip cells, p1=tile-swap cells; SMEAR p0=cells, p1=drag offset.)
+  const EFFECTS = (variant) => variant === 1
+    ? [fx(0x00, 0, 0, 0), fx(0x0a, 40, 1, 0), fx(0x09, 20, 16, 0), fx(0x08, 24, 8, 0)]   // SMEAR / CHURN / SCRAMBLE
+    : [fx(0x00, 0, 0, 0), fx(0x07, 24, 0, 0), fx(0x09, 20, 16, 0), fx(0x08, 24, 8, 0)];  // MELT  / CHURN / SCRAMBLE
   const FLOW = () => [mv(0x01, 1, 1, 15), mv(0x02, 2, 1, 15), mv(0x03, 1, 1, 15), mv(0x00, 1, 0, 0)];
 
   const G = (o) => Object.assign(SVJ.generators.defaults(), o);
@@ -126,11 +129,14 @@ SVJ.scene = (function () {
   function defaultMovements() { return FLOW(); }
 
   function makeBank() {
+    const scenes = DEFS.map(makeSceneFrom);
+    // give each bank (group of 4) its corruption personality
+    scenes.forEach((s, i) => { s.effects = EFFECTS((i >> 2) & 1); });
     return {
       region: 0,
       default_bpm: 120,
       boot: { scene: 0, palette: 0, effect: 0, movement: 0 },
-      scenes: DEFS.map(makeSceneFrom),
+      scenes,
     };
   }
 

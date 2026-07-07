@@ -197,6 +197,7 @@ whichever palette is current, so they compose.
 | 0x07 | MELT (DATAMOSH) | bytes/tick | — | — |
 | 0x08 | SCRAMBLE | cells/tick | — | — |
 | 0x09 | CHURN | corrupt bytes/tick | heal bytes/tick | — |
+| 0x0A | SMEAR | cells/tick | drag offset (cells) | — |
 
 A live **corruption suite** (16-bit LFSR), all reset when you cycle away or change scene:
 - **MELT** overwrites `p0` random bytes/tick in the VRAM pattern area → the shared 8×8
@@ -204,8 +205,13 @@ A live **corruption suite** (16-bit LFSR), all reset when you cycle away or chan
 - **CHURN** overwrites `p0` bytes but also heals `p1` bytes from the clean ROM tiles, so
   the pattern boils forever instead of fully dissolving.
 - **SCRAMBLE** toggles the flip / palette-bank bits (word bits 9–11) of `p0` name-table
-  cells/tick — the *same* tiles reshuffle into a kaleidoscopic churn. Non-destructive to
-  patterns; reset re-uploads the layout.
+  cells/tick, and swaps `p1` cells to a fresh random tile — the *same* tiles reshuffle
+  into a kaleidoscopic churn. Non-destructive to patterns; reset re-uploads the layout.
+- **SMEAR** copies `p0` name-table cells/tick to a neighbour `p1` cells away, dragging
+  the pattern in a direction (classic datamosh streaking). Reset re-uploads the layout.
+
+The runtime runs the active corruption every tick and once more on the beat (a rhythmic
+kick). Effect slots vary by scene bank so all modes are reachable across the 16 scenes.
 
 All compose with movement/palette (which touch CRAM, not VRAM patterns/name tables).
 

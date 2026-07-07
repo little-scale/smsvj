@@ -21,7 +21,7 @@
 
   const $ = (id) => document.getElementById(id);
   const scene = () => bank.scenes[ui.curScene];
-  const EFFECT_NAMES = ["NONE", "LAYOUT", "INVERT", "ROTATE", "FREEZE_LATCH", "WOBBLE", "BLANK", "MELT", "SCRAMBLE", "CHURN"];
+  const EFFECT_NAMES = ["NONE", "LAYOUT", "INVERT", "ROTATE", "FREEZE_LATCH", "WOBBLE", "BLANK", "MELT", "SCRAMBLE", "CHURN", "SMEAR"];
   const MOVE_NAMES = ["STATIC", "CYCLE_FWD", "CYCLE_BACK", "PINGPONG"];
 
   // ---- baking ----
@@ -264,20 +264,29 @@
       tilesForRender = ui.moshTiles;
     } else { ui.moshTiles = null; ui.moshBase = null; }
 
-    if (fx.type === 0x08) {                    // SCRAMBLE: flip toggles + tile swaps
+    if (fx.type === 0x08 || fx.type === 0x0a) { // layout-corrupting effects
       if (!ui.moshLayout || ui.moshLBase !== layoutForRender) {
         ui.moshLayout = layoutForRender.slice();
         ui.moshLBase = layoutForRender;
       }
-      const cells = ((fx.p0 | 0) || 24) * kick;
-      for (let k = 0; k < cells; k++) {
-        const ci = (Math.random() * ui.moshLayout.length) | 0;
-        ui.moshLayout[ci] ^= ((Math.random() * 8) | 0) << 9;  // toggle flip/bank
-      }
-      const swaps = (fx.p1 | 0) * kick;        // SCRAMBLE++: swap to a random tile
-      for (let k = 0; k < swaps; k++) {
-        const ci = (Math.random() * ui.moshLayout.length) | 0;
-        ui.moshLayout[ci] = ((Math.random() * b.tiles.length) | 0) | (((Math.random() * 8) | 0) << 9);
+      const L = ui.moshLayout.length;
+      if (fx.type === 0x08) {                  // SCRAMBLE: flip toggles + tile swaps
+        const cells = ((fx.p0 | 0) || 24) * kick;
+        for (let k = 0; k < cells; k++) {
+          ui.moshLayout[(Math.random() * L) | 0] ^= ((Math.random() * 8) | 0) << 9;
+        }
+        const swaps = (fx.p1 | 0) * kick;
+        for (let k = 0; k < swaps; k++) {
+          ui.moshLayout[(Math.random() * L) | 0] =
+            ((Math.random() * b.tiles.length) | 0) | (((Math.random() * 8) | 0) << 9);
+        }
+      } else {                                 // SMEAR: drag cells to a neighbour
+        const cells = ((fx.p0 | 0) || 40) * kick;
+        const off = (fx.p1 | 0) || 1;
+        for (let k = 0; k < cells; k++) {
+          const ci = (Math.random() * L) | 0;
+          ui.moshLayout[(ci + off) % L] = ui.moshLayout[ci];
+        }
       }
       layoutForRender = ui.moshLayout;
     } else { ui.moshLayout = null; ui.moshLBase = null; }
