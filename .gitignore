@@ -1,0 +1,18 @@
+# Build outputs
+*.sms
+*.gg
+*.o
+*.sym
+
+# WLA-DX intermediates
+*.lst
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editor / OS
+.DS_Store
+*.swp
