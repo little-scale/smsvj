@@ -47,6 +47,16 @@ vdp_init:
   xor a
   out (VDP_DATA),a
   djnz -
+  ; terminate the sprite attribute table (SAT at $3F00): Y=$D0 on sprite 0 so
+  ; the VDP draws no sprites (we don't use them yet).
+  ld hl,VRAM_SAT
+  ld a,l
+  out (VDP_CTRL),a
+  ld a,h
+  or $40
+  out (VDP_CTRL),a
+  ld a,$D0
+  out (VDP_DATA),a
   ret
 
 ; Copy a block to VRAM. HL = VRAM dest, DE = ROM src, BC = length.
