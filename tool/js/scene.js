@@ -111,6 +111,7 @@ SVJ.scene = (function () {
       mode: def.mode,
       pixels: px,
       variants: def.variants.slice(),
+      tileBudget: def.tileBudget || 48,   // cap for fast scene/tile swaps
       bank: 0,
       priority: 0,
       palettes: theme(THEMES[def.theme]),

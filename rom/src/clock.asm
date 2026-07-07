@@ -84,17 +84,14 @@ clock_tick:
   ld a,(mv_div)
   ld (mv_count),a
 ct_beat:
+  call latch_fast            ; palette/effect/movement latch every TICK (snappy)
   ld a,(tick_lo)
   and 3
-  ret nz                     ; not on a beat
-  call latch_beat
-  ld a,(tick_lo)
-  and 15
-  ret nz                     ; beat but not a bar
-  jp latch_bar
+  ret nz                     ; scene latches on the beat (every 4 ticks)
+  jp latch_scene
 
-; Beat latch: palette / effect / movement (capture-instant, apply-on-beat).
-latch_beat:
+; Fast latch: palette / effect / movement (capture-instant, apply-on-tick).
+latch_fast:
   ld a,(pend_pal)
   ld b,a
   ld a,(cur_pal)
@@ -125,8 +122,8 @@ lb_mv:
   ld (mv_count),a
   ret
 
-; Bar latch: scene / tileset (the heavy reload).
-latch_bar:
+; Scene latch: scene / tileset (the heavy reload), on the beat.
+latch_scene:
   ld a,(pend_scene)
   ld b,a
   ld a,(cur_scene)

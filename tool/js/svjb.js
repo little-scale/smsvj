@@ -24,6 +24,7 @@ SVJ.svjb = (function () {
     return F.bake(scene.pixels, scene.mode, scene.variants, {
       bank: scene.bank ? 1 : 0,
       priority: scene.priority ? 1 : 0,
+      tileBudget: scene.tileBudget || 0,
     });
   }
 

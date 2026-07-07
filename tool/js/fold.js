@@ -76,7 +76,12 @@ SVJ.fold = (function () {
   function bake(pixels, mode, variants, opts) {
     const g = geometry(mode);
     const { tileList, grid } = slice(pixels, g.tilesW, g.tilesH);
-    const { unique, refs } = T.dedupe(tileList);
+    let { unique, refs } = T.dedupe(tileList);
+    // Optional tile budget: merge rare tiles so scene swaps stay small/fast.
+    const budget = opts && opts.tileBudget;
+    if (budget && unique.length > budget) {
+      ({ unique, refs } = T.reduceToBudget(unique, refs, budget));
+    }
     // Map row-major refs back onto the source grid.
     const refsGrid = grid.map((row) => row.map((i) => refs[i]));
     const layouts = variants.map((v) => buildLayout(refsGrid, v, mode, opts));
