@@ -50,6 +50,13 @@ button {
 button:hover { border-color: var(--accent); }
 button.primary { background: var(--accent); color: #05201b; border-color: var(--accent); font-weight: 600; }
 button.on { background: var(--accent2); color: #2a0620; border-color: var(--accent2); }
+.filebtn {
+  background: #1e2330; color: var(--ink); border: 1px solid var(--edge);
+  border-radius: 5px; padding: .35rem .7rem; cursor: pointer; font-size: .78rem;
+  display: inline-flex; align-items: center; text-transform: none; white-space: nowrap;
+}
+.filebtn:hover { border-color: var(--accent); }
+.filebtn input[type=file] { display: none; }
 
 .pixelcanvas { image-rendering: pixelated; border: 1px solid var(--edge); background: #000; display: block; width: 100%; height: auto; }
 .pixelcanvas.big { max-width: 512px; }
@@ -112,3 +119,17 @@ button.on { background: var(--accent2); color: #2a0620; border-color: var(--acce
 .rompal { margin-top: .5rem; border-top: 1px solid var(--edge); padding-top: .5rem; }
 .rompal #romPalStrip { margin: .2rem 0 .4rem; }
 .rompal #romPalUse { margin-left: auto; }
+
+/* tile studio */
+.backlink { color: var(--accent2); text-decoration: none; font-size: .78rem; align-self: center; }
+.backlink:hover { text-decoration: underline; }
+.tabs { display: flex; gap: .3rem; margin-bottom: .6rem; }
+.tab { flex: 1; }
+.tab.on { background: var(--accent); color: #05201b; border-color: var(--accent); }
+.tabpane.hidden { display: none; }
+.srcwrap { max-height: 320px; overflow: auto; border: 1px solid var(--edge); border-radius: 5px; margin: .4rem 0; background: #000; }
+.srcsheet { width: 100%; image-rendering: pixelated; cursor: crosshair; display: block; }
+.tgtcanvas { width: 100%; image-rendering: pixelated; cursor: crosshair; background: #000; }
+.flipbtns { margin-left: auto; display: flex; align-items: center; gap: .25rem; color: var(--dim); font-size: .7rem; }
+.flipbtns button { padding: .2rem .5rem; }
+.flipbtns button.on { background: var(--accent2); color: #2a0620; border-color: var(--accent2); }

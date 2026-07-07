@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SMSVJ tile studio</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header>
+    <h1>SMSVJ <span>tile studio</span></h1>
+    <div class="bankbar">
+      <label>Mode
+        <select id="mode"><option value="quarter">Quarter (fold)</option><option value="full">Full frame</option></select>
+      </label>
+      <a class="backlink" href="index.html">▸ look-patcher</a>
+      <button id="clear">Clear</button>
+      <button id="export" class="primary">⬇ Export .svjt</button>
+      <span id="status" class="status"></span>
+    </div>
+  </header>
+
+  <main>
+    <!-- SOURCE -->
+    <section class="panel">
+      <h2>Source</h2>
+      <div class="tabs">
+        <button class="tab on" data-tab="rom">ROM</button>
+        <button class="tab" data-tab="image">Image</button>
+      </div>
+
+      <div class="tabpane" id="pane-rom">
+        <div class="row">
+          <label class="filebtn">Choose / drop .sms · .gg<input type="file" id="romFile" accept=".sms,.gg,.bin,.rom" /></label>
+          <span class="hint" id="romInfo">no ROM</span>
+        </div>
+        <label class="romofflbl">Offset <b id="vRomOff" class="mono">0x0</b>
+          <input id="romOff" type="range" min="0" max="0" step="32" value="0" disabled /></label>
+        <div class="row"><button id="romGrabPal" disabled>Grab palette here</button>
+          <label class="chk"><input type="checkbox" id="romPalGG" /> 12-bit (GG)</label></div>
+      </div>
+
+      <div class="tabpane hidden" id="pane-image">
+        <div class="row">
+          <label class="filebtn">Choose / drop image<input type="file" id="imgFile" accept="image/*" /></label>
+          <span class="hint" id="imgInfo">no image</span>
+        </div>
+        <div class="row">
+          <label>Tiles wide <input id="imgTilesW" type="number" min="1" max="32" value="16" /></label>
+          <label>Colours <input id="imgColors" type="number" min="2" max="16" value="16" /></label>
+          <button id="imgRequant" disabled>Re-quantise</button>
+        </div>
+      </div>
+
+      <div class="srcwrap"><canvas id="srcSheet" class="pixelcanvas srcsheet"></canvas></div>
+      <div class="row">
+        <span class="hint" id="brushInfo">pick a tile — click, or drag a group</span>
+        <span class="flipbtns">flip <button id="flipH">H</button><button id="flipV">V</button></span>
+      </div>
+    </section>
+
+    <!-- COMPOSE -->
+    <section class="panel">
+      <h2>Compose <span id="tgtInfo" class="mono"></span></h2>
+      <canvas id="tgtCanvas" class="pixelcanvas tgtcanvas"></canvas>
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="eraser" /> eraser</label>
+        <span class="hint">Click / drag to stamp the brush. Quarter mode folds a 4-way kaleidoscope in the preview.</span>
+      </div>
+    </section>
+
+    <!-- PREVIEW + PALETTE -->
+    <section class="panel">
+      <h2>Preview</h2>
+      <canvas id="pvCanvas" width="256" height="192" class="pixelcanvas big"></canvas>
+      <h3>Palette</h3>
+      <div class="cram" id="palStrip"></div>
+      <div class="gamut" id="gamut"></div>
+      <p class="hint">Click a palette slot, then a gamut swatch to recolour. Image import fills this
+        automatically; “Grab palette here” pulls 32 CRAM bytes from the ROM offset.</p>
+    </section>
+  </main>
+
+  <script src="js/color.js"></script>
+  <script src="js/tiles.js"></script>
+  <script src="js/fold.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/studio.js"></script>
+</body>
+</html>

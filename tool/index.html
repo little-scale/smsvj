@@ -16,6 +16,8 @@
       </label>
       <button id="play" class="primary">▶ Play</button>
       <button id="export">⬇ Export .svjb</button>
+      <label class="filebtn importbtn">⬆ Import source<input type="file" id="importSrc" accept=".svjt,.json" /></label>
+      <a class="backlink" href="studio.html">▸ tile studio</a>
       <span id="status" class="status"></span>
     </div>
   </header>
@@ -96,14 +98,17 @@
         <label class="chk"><input type="checkbox" id="autoFx" /> effect</label>
         <label class="chk"><input type="checkbox" id="autoMv" /> movement</label>
       </div>
-      <p class="hint">B1: effect dial (↑/↓) + speed (←/→). B2: movement (↑/↓). B1+B2: tileset (←/→, of 8) + palette (↑/↓, of 4).</p>
+      <p class="hint">B1: effect dial (↑/↓) + speed (←/→). B2: movement (↑/↓). B1+B2: tileset (←/→, of 16) + palette (↑/↓, of 8).</p>
     </section>
 
     <!-- CONFIG -->
     <section class="panel config">
       <h2>Palettes &amp; axes</h2>
       <label>Edit palette
-        <select id="palSel"><option>0</option><option>1</option><option>2</option><option>3</option></select>
+        <select id="palSel">
+          <option>0</option><option>1</option><option>2</option><option>3</option>
+          <option>4</option><option>5</option><option>6</option><option>7</option>
+        </select>
       </label>
       <div class="cram" id="cramGrid"></div>
       <div class="gamut" id="gamutGrid"></div>

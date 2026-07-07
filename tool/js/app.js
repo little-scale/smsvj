@@ -445,6 +445,31 @@
   };
   $("export").onclick = doExport;
 
+  // Import a .svjt scene source (from the tile studio) into the current tileset.
+  $("importSrc").onchange = (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const doc = JSON.parse(reader.result);
+        if (doc.svjt !== 1 || !Array.isArray(doc.pixels)) throw new Error("not a .svjt source");
+        scene().mode = doc.mode === "full" ? "full" : "quarter";
+        scene().generator = null;                       // hand-composed, not generated
+        scene().pixels = doc.pixels.map((r) => r.slice());
+        if (Array.isArray(doc.palette) && doc.palette.length >= 32) {
+          scene().palettes[ui.editPal] = Uint8Array.from(doc.palette.slice(0, 32));
+        }
+        $("modeSel").value = scene().mode;
+        sizeAuthoring(); drawAuthoring();
+        buildCramGrid(); buildDrawSwatches();
+        rebake(ui.curScene);
+        setStatus(`imported ${scene().mode} source into tileset ${ui.curScene}`, "ok");
+      } catch (err) { setStatus("import failed: " + (err.message || err), "err"); }
+      e.target.value = "";
+    };
+    reader.readAsText(file);
+  };
+
   $("sceneSel").onchange = (e) => {
     ui.curScene = parseInt(e.target.value, 10);
     clk.state.cur.scene = clk.state.pend.scene = ui.curScene; // jump preview too
