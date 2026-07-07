@@ -55,6 +55,10 @@
       y: Math.max(0, Math.min(rows - 1, (((ev.clientY - rect.top) / rect.height) * rows) | 0)),
     };
   }
+  function updateBrushInfo(origin) {
+    const fl = brushFlip ? " (flip " + (brushFlip & 1 ? "H" : "") + (brushFlip & 2 ? "V" : "") + ")" : "";
+    $("brushInfo").textContent = `brush ${brush.w}×${brush.h}${fl}${origin ? " from " + origin : ""}`;
+  }
   function setBrush(sel) {
     const tiles = [];
     for (let j = 0; j < sel.h; j++) {
@@ -63,7 +67,22 @@
       tiles.push(row);
     }
     brush = { w: sel.w, h: sel.h, tiles };
-    $("brushInfo").textContent = `brush ${sel.w}×${sel.h}${brushFlip ? " (flip " + (brushFlip & 1 ? "H" : "") + (brushFlip & 2 ? "V" : "") + ")" : ""}`;
+    updateBrushInfo();
+  }
+  // Capture a rectangular block of the composed target as the brush (clones tiles).
+  function captureTarget(sel) {
+    const tiles = [];
+    for (let j = 0; j < sel.h; j++) {
+      const row = [];
+      for (let i = 0; i < sel.w; i++) {
+        const cx = sel.x + i, cy = sel.y + j, t = blankTile();
+        for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) t[r][c] = TGT.pixels[cy * 8 + r][cx * 8 + c] & 15;
+        row.push(t);
+      }
+      tiles.push(row);
+    }
+    brush = { w: sel.w, h: sel.h, tiles };
+    updateBrushInfo("compose");
   }
   srcSheet.addEventListener("mousedown", (e) => { if (!SRC.tiles.length) return; srcDrag = srcTileAt(e); srcSel = { x: srcDrag.x, y: srcDrag.y, w: 1, h: 1 }; renderSrc(); });
   srcSheet.addEventListener("mousemove", (e) => {
@@ -172,6 +191,10 @@
     tctx.strokeStyle = "rgba(255,255,255,0.08)"; tctx.lineWidth = 1;
     for (let tx = 0; tx <= g.tilesW; tx++) { tctx.beginPath(); tctx.moveTo(tx * 8 * s, 0); tctx.lineTo(tx * 8 * s, g.pxH * s); tctx.stroke(); }
     for (let ty = 0; ty <= g.tilesH; ty++) { tctx.beginPath(); tctx.moveTo(0, ty * 8 * s); tctx.lineTo(g.pxW * s, ty * 8 * s); tctx.stroke(); }
+    if (tgtSel) {
+      tctx.strokeStyle = "#ff6ac1"; tctx.lineWidth = 2;
+      tctx.strokeRect(tgtSel.x * 8 * s + 1, tgtSel.y * 8 * s + 1, tgtSel.w * 8 * s - 2, tgtSel.h * 8 * s - 2);
+    }
   }
   function tgtCellAt(ev) {
     const rect = tgt.getBoundingClientRect();
@@ -226,14 +249,26 @@
     }
     renderTarget(); renderPreview();
   }
-  let tgtPaint = false;
+  let tgtPaint = false, tgtSel = null, tgtSelDrag = null;
   tgt.addEventListener("mousedown", (e) => {
     const c = tgtCellAt(e);
+    if ($("selectMode").checked) { tgtSelDrag = c; tgtSel = { x: c.tx, y: c.ty, w: 1, h: 1 }; renderTarget(); return; }
     if ($("bucket").checked) { floodFill(c.tx, c.ty); return; }
-    tgtPaint = true; stampAt(c.tx, c.ty);
+    tgtSel = null; tgtPaint = true; stampAt(c.tx, c.ty);
   });
-  tgt.addEventListener("mousemove", (e) => { if (tgtPaint) { const c = tgtCellAt(e); stampAt(c.tx, c.ty); } });
-  window.addEventListener("mouseup", () => { tgtPaint = false; });
+  tgt.addEventListener("mousemove", (e) => {
+    const c = tgtCellAt(e);
+    if (tgtSelDrag) {
+      tgtSel = { x: Math.min(tgtSelDrag.tx, c.tx), y: Math.min(tgtSelDrag.ty, c.ty),
+        w: Math.abs(c.tx - tgtSelDrag.tx) + 1, h: Math.abs(c.ty - tgtSelDrag.ty) + 1 };
+      renderTarget(); return;
+    }
+    if (tgtPaint) stampAt(c.tx, c.ty);
+  });
+  window.addEventListener("mouseup", () => {
+    if (tgtSelDrag && tgtSel) captureTarget(tgtSel);
+    tgtSelDrag = null; tgtPaint = false;
+  });
   $("fillAll").onclick = fillAll;
 
   // ---- folded preview ----
@@ -271,8 +306,8 @@
     $("pane-rom").classList.toggle("hidden", b.dataset.tab !== "rom");
     $("pane-image").classList.toggle("hidden", b.dataset.tab !== "image");
   });
-  $("flipH").onclick = () => { brushFlip ^= 1; $("flipH").classList.toggle("on", brushFlip & 1); if (srcSel) setBrush(srcSel); };
-  $("flipV").onclick = () => { brushFlip ^= 2; $("flipV").classList.toggle("on", brushFlip & 2); if (srcSel) setBrush(srcSel); };
+  $("flipH").onclick = () => { brushFlip ^= 1; $("flipH").classList.toggle("on", brushFlip & 1); updateBrushInfo(); };
+  $("flipV").onclick = () => { brushFlip ^= 2; $("flipV").classList.toggle("on", brushFlip & 2); updateBrushInfo(); };
   $("mode").onchange = (e) => { newTarget(e.target.value); renderTarget(); renderPreview(); };
   $("clear").onclick = () => { newTarget(TGT.mode); renderTarget(); renderPreview(); };
 

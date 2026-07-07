@@ -64,10 +64,12 @@
       <h2>Compose <span id="tgtInfo" class="mono"></span></h2>
       <canvas id="tgtCanvas" class="pixelcanvas tgtcanvas"></canvas>
       <div class="row">
+        <label class="chk"><input type="checkbox" id="selectMode" /> select</label>
         <label class="chk"><input type="checkbox" id="eraser" /> eraser</label>
         <label class="chk"><input type="checkbox" id="bucket" /> bucket fill</label>
         <button id="fillAll">Fill all</button>
-        <span class="hint">Click / drag to stamp; bucket flood-fills a matching region; Fill all tiles the brush across the frame.</span>
+        <span class="hint">Click / drag to stamp; <b>select</b> marquees a block here as the brush;
+          bucket flood-fills a region; Fill all tessellates the brush across the frame.</span>
       </div>
     </section>
 
