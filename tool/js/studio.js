@@ -180,21 +180,61 @@
       ty: Math.max(0, Math.min(TGT.tilesH - 1, (((ev.clientY - rect.top) / rect.height) * TGT.tilesH) | 0)),
     };
   }
+  function writeTileAt(cx, cy, tile) {
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) TGT.pixels[cy * 8 + r][cx * 8 + c] = tile[r][c] & 15;
+  }
+  function tileKeyAt(cx, cy) {
+    let s = ""; for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) s += (TGT.pixels[cy * 8 + r][cx * 8 + c] & 15).toString(16);
+    return s;
+  }
+  // The brush tile that belongs at absolute cell (cx,cy) when tiling the brush across
+  // the frame — auto-tessellation wraps the brush in both X and Y.
+  function brushTileFor(cx, cy) {
+    if ($("eraser").checked) return blankTile();
+    const i = ((cx % brush.w) + brush.w) % brush.w, j = ((cy % brush.h) + brush.h) % brush.h;
+    const si = (brushFlip & 1) ? brush.w - 1 - i : i, sj = (brushFlip & 2) ? brush.h - 1 - j : j;
+    return T.applyFlip(brush.tiles[sj][si], brushFlip);
+  }
   function stampAt(tx, ty) {
     const erase = $("eraser").checked;
     for (let j = 0; j < brush.h; j++) for (let i = 0; i < brush.w; i++) {
       const si = (brushFlip & 1) ? brush.w - 1 - i : i, sj = (brushFlip & 2) ? brush.h - 1 - j : j;
-      const tile = T.applyFlip(brush.tiles[sj][si], brushFlip);
+      const tile = erase ? blankTile() : T.applyFlip(brush.tiles[sj][si], brushFlip);
       const cx = tx + i, cy = ty + j;
       if (cx < 0 || cy < 0 || cx >= TGT.tilesW || cy >= TGT.tilesH) continue;
-      for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) TGT.pixels[cy * 8 + r][cx * 8 + c] = erase ? 0 : (tile[r][c] & 15);
+      writeTileAt(cx, cy, tile);
+    }
+    renderTarget(); renderPreview();
+  }
+  // Auto-tessellate the brush across the whole frame (both axes).
+  function fillAll() {
+    for (let cy = 0; cy < TGT.tilesH; cy++) for (let cx = 0; cx < TGT.tilesW; cx++) writeTileAt(cx, cy, brushTileFor(cx, cy));
+    renderTarget(); renderPreview();
+  }
+  // Flood-fill the contiguous region of cells matching the clicked tile, tessellating
+  // the brush into it (anchored to the grid so a group brush keeps its phase).
+  function floodFill(sx, sy) {
+    const seed = tileKeyAt(sx, sy), seen = new Set(), stack = [[sx, sy]];
+    while (stack.length) {
+      const [cx, cy] = stack.pop();
+      if (cx < 0 || cy < 0 || cx >= TGT.tilesW || cy >= TGT.tilesH) continue;
+      const k = cx + "," + cy;
+      if (seen.has(k) || tileKeyAt(cx, cy) !== seed) continue;
+      seen.add(k);
+      writeTileAt(cx, cy, brushTileFor(cx, cy));
+      stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
     }
     renderTarget(); renderPreview();
   }
   let tgtPaint = false;
-  tgt.addEventListener("mousedown", (e) => { tgtPaint = true; const c = tgtCellAt(e); stampAt(c.tx, c.ty); });
+  tgt.addEventListener("mousedown", (e) => {
+    const c = tgtCellAt(e);
+    if ($("bucket").checked) { floodFill(c.tx, c.ty); return; }
+    tgtPaint = true; stampAt(c.tx, c.ty);
+  });
   tgt.addEventListener("mousemove", (e) => { if (tgtPaint) { const c = tgtCellAt(e); stampAt(c.tx, c.ty); } });
   window.addEventListener("mouseup", () => { tgtPaint = false; });
+  $("fillAll").onclick = fillAll;
 
   // ---- folded preview ----
   const pv = $("pvCanvas"), pctx = pv.getContext("2d"), pvImg = pctx.createImageData(R.W, R.H);
