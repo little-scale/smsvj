@@ -50,9 +50,8 @@ Each button owns a theme — B1 = effect, B2 = look, B1+B2 = source:
 
 | input | action | latch |
 |---|---|---|
-| B1 + ↑/↓ | **effect dial** (of 9: NONE centre, 4 glitch up, 4 colour down) | tick |
-| B1 + ←/→ | **effect speed** (0–3, runs 1<<n corruptions/frame) | instant |
-| B1 + ←/→ | **effect speed** (0–7) | instant |
+| B1 + ↑/↓ | **effect dial** (of 9: NONE centre, 4 glitch up, 4 glitch down) | tick |
+| B1 + ←/→ | **effect speed** (0–15, clamped — no wrap) | instant |
 | B2 + ↑/↓ | movement (of 7) | tick |
 | B1+B2 + ←/→ | **tileset** (of 16) — palette stays | beat |
 | B1+B2 + ↑/↓ | **palette** (of 8) — tileset stays | tick |
@@ -64,7 +63,7 @@ swaps the tileset keeping the palette, ↑/↓ swaps the palette keeping the til
 are **16 tilesets and 8 (global) palettes**. Latches: palette/effect/movement on the
 **tick**, tileset on the **beat**. The **effect dial** is all corruption: down = SMEAR-D
 / STAMP / XOR / MORPH, centre = NONE, up = SCRAMBLE / SMEAR-H / SMEAR-V / CHURN.
-**Movement of 7**: slow/fast × up/down, two anti-phase wobbles, and none. **Speed** (0–7)
+**Movement of 7**: slow/fast × up/down, two anti-phase wobbles, and none. **Speed** (0–15)
 scales how many corruption passes run per frame. Tempo-nudge dropped (tempo comes from
 Link/sync).
 

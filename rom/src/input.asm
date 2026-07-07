@@ -1,7 +1,7 @@
 ; ---------------------------------------------------------------------------
 ; Controller-1 pad grammar (capture-instant). D-pad is edge-detected.
 ;
-;   B1     : L/R = effect SPEED (0-7)       U/D = effect DIAL (of 9, clamped)
+;   B1     : L/R = effect SPEED (0-15, clamped)  U/D = effect DIAL (of 9)
 ;   B2     :                                U/D = movement (of 7)
 ;   B1+B2  : L/R = tileset (of 16)          U/D = palette (of 8)
 ;   B1+B2 (no d-pad) : freeze (momentary)
@@ -204,10 +204,10 @@ nudge_fx_down:
   ld (pend_fx),a
   ret
 
-; Effect speed: clamp mosh_speed to 0..7 (instant).
+; Effect speed: clamp mosh_speed to 0..15 (instant, no wrap).
 speed_up:
   ld a,(mosh_speed)
-  cp 7
+  cp 15
   ret z
   inc a
   ld (mosh_speed),a

@@ -17,7 +17,8 @@
     lastBeat: 0,
     lastTs: 0,
     wobblePhase: 0,
-    moshSpeed: 1,       // 0-3, matches the ROM's B1+left/right speed
+    moshSpeed: 6,       // 0-15, matches the ROM's B1+left/right speed
+    moshAcc: 0,
     lastRenderBeat: 0,
   };
 
@@ -26,7 +27,8 @@
   const EFFECT_NAMES = ["NONE", "LAYOUT", "INVERT", "ROTATE", "FREEZE_LATCH", "WOBBLE", "BLANK",
     "MELT", "SCRAMBLE", "CHURN", "SMEAR", "MORPH", "XOR", "STAMP"];
   const MOVE_NAMES = ["STATIC", "CYCLE_FWD", "CYCLE_BACK", "WOBBLE_A", "WOBBLE_B"];
-  const SPEED_RUNS = [1, 2, 3, 5, 8, 12, 18, 24]; // matches the ROM speed table
+  // matches the ROM speed_rate table (1/8-frame units, 16 clamped levels)
+  const SPEED_RATE = [1, 2, 4, 8, 16, 24, 32, 48, 64, 96, 128, 160, 192, 224, 240, 248];
 
   // ---- baking ----
   function rebake(i) {
@@ -242,9 +244,13 @@
     // Corruption effects, mirroring the ROM. MELT(7)/CHURN(9) mutate a working
     // copy of the tile patterns; SCRAMBLE(8) toggles flip/palette-bank bits of
     // name-table cells. Copies rebuild clean when off or the scene changes.
-    // Corruption amount per frame = speed multiplier, with an extra beat kick.
+    // Corruption per frame: accumulate the speed rate (1/8-frame units), run
+    // floor(acc/8) passes this frame, with an extra kick on the beat.
     const beatNow = Math.floor(clk.state.tick / CLK.BEAT);
-    const kick = (beatNow !== ui.lastRenderBeat ? 2 : 1) * SPEED_RUNS[ui.moshSpeed];
+    ui.moshAcc += SPEED_RATE[ui.moshSpeed];
+    const passes = ui.moshAcc >> 3;
+    ui.moshAcc &= 7;
+    const kick = passes * (beatNow !== ui.lastRenderBeat ? 2 : 1);
     ui.lastRenderBeat = beatNow;
 
     let tilesForRender = b.tiles;
@@ -386,7 +392,7 @@
   $("freeze").onmousedown = () => { ui.freeze = true; };
   window.addEventListener("mouseup", () => { ui.freeze = false; });
 
-  function setSpeed(v) { ui.moshSpeed = Math.max(0, Math.min(7, v)); $("spdVal").textContent = ui.moshSpeed; }
+  function setSpeed(v) { ui.moshSpeed = Math.max(0, Math.min(15, v)); $("spdVal").textContent = ui.moshSpeed; }
   $("spdUp").onclick = () => setSpeed(ui.moshSpeed + 1);
   $("spdDn").onclick = () => setSpeed(ui.moshSpeed - 1);
 
@@ -401,6 +407,7 @@
   // ---- init ----
   function init() {
     $("bpm").value = bank.default_bpm;
+    $("spdVal").textContent = ui.moshSpeed;
     sizeAuthoring();
     rebakeAll();
     drawAuthoring();

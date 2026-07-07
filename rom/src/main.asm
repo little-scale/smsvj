@@ -56,22 +56,37 @@ main_loop:
   ld (frame_ready),a
   call read_input             ; controller 1 -> pending nudges (capture-instant)
   call clock_update           ; advance accumulator -> ticks, latch on boundaries
-  ; per-frame corruption, run speed_runs[mosh_speed] times (B1+left/right = speed)
+  ; per-frame corruption (B1+left/right = speed). speed_rate is in 1/8-frame
+  ; units; accumulate and run floor(acc/8) passes, keeping the remainder so slow
+  ; speeds fire only every few frames.
   ld a,(mosh_speed)
   ld e,a
   ld d,0
-  ld hl,speed_runs
+  ld hl,speed_rate
   add hl,de
-  ld b,(hl)                   ; number of mosh_step passes this frame
+  ld a,(hl)                   ; rate (<=248)
+  ld hl,mosh_acc
+  add a,(hl)                  ; acc + rate (no 8-bit overflow: acc<8)
+  ld b,a
+  and 7
+  ld (hl),a                   ; new fractional remainder
+  ld a,b
+  srl a
+  srl a
+  srl a                       ; passes = (acc + rate) >> 3
+  ld b,a
+  or a
+  jr z,ml_done                ; nothing this frame
 ml_run:
   push bc
   call mosh_step
   pop bc
   djnz ml_run
+ml_done:
   jp main_loop
 
-speed_runs:
-.db 1, 2, 3, 5, 8, 12, 18, 24
+speed_rate:
+.db 1, 2, 4, 8, 16, 24, 32, 48, 64, 96, 128, 160, 192, 224, 240, 248
 .ENDS
 
 .INCLUDE "vdp.asm"

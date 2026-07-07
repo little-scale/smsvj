@@ -110,7 +110,8 @@ tile_count      db          ; current scene tile count (SCRAMBLE index range)
 mosh_mask       db          ; (2^n)-1 covering tile_count (random-index masking)
 tiles_dirty     db          ; VRAM pattern data has been corrupted (MELT/CHURN)
 layout_dirty    db          ; VRAM name table has been scrambled (SCRAMBLE/SMEAR)
-mosh_speed      db          ; corruption speed 0-3 -> runs 1<<n times per frame
+mosh_speed      db          ; corruption speed 0-15 (index into speed_rate)
+mosh_acc        db          ; fractional pass accumulator (1/8-frame units)
 fx_type         db          ; decoded active effect record
 fx_p0           db
 fx_p1           db
