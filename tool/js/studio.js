@@ -8,7 +8,7 @@
 
   // ---- state ----
   const SRC = { tiles: [], cols: 16 };          // source tile sheet (flat, `cols` wide)
-  const ROM = { buf: null, off: 0, palGG: false, format: "raw" };
+  const ROM = { buf: null, off: 0, phase: 0, palGG: false, format: "raw" };
   let pal = greyRamp();                          // 32-entry CRAM (bank1 mirrors bank0)
   let brush = { w: 1, h: 1, tiles: [[blankTile()]] };
   let brushFlip = 0;                             // bit0 = H, bit1 = V
@@ -107,11 +107,11 @@
 
   // ---- ROM source ----
   function romSheetTiles() {
-    let bytes;
+    let bytes; const rd = ROM.off + ROM.phase;         // effective read offset (base + phase)
     if (ROM.format === "rnc") {
-      const r = SVJ.romdecode.rncUnpack(ROM.buf, ROM.off); bytes = r.bytes;
+      const r = SVJ.romdecode.rncUnpack(ROM.buf, rd); bytes = r.bytes;
       setStatus(`RNC ${r.ok ? "✓ CRC ok" : "✗ no/!CRC"} · ${bytes.length} B`, r.ok ? "ok" : "err");
-    } else bytes = SVJ.romdecode.decode(ROM.buf, ROM.off, ROM.format);
+    } else bytes = SVJ.romdecode.decode(ROM.buf, rd, ROM.format);
     const out = [];
     for (let i = 0; i < 256; i++) out.push(T.decode(bytes, i * 32));
     SRC.tiles = out; SRC.cols = 16; renderSrc();
@@ -122,6 +122,7 @@
       ROM.buf = new Uint8Array(rd.result); ROM.off = 0;
       $("romOff").max = Math.max(0, ROM.buf.length - 256 * 32); $("romOff").value = 0; $("romOff").disabled = false;
       $("vRomOff").textContent = "0x0"; $("romGrabPal").disabled = false; $("romFindRnc").disabled = false;
+      ROM.phase = 0; $("romPhase").disabled = false; $("romPhase").value = 0; $("vRomPhase").textContent = "0";
       ROM.palGG = /\.gg$/i.test(file.name); $("romPalGG").checked = ROM.palGG;
       $("romInfo").textContent = `${file.name} · ${(ROM.buf.length / 1024) | 0} KB`;
       romSheetTiles();
@@ -147,6 +148,7 @@
   };
   $("romFile").onchange = (e) => e.target.files[0] && loadRom(e.target.files[0]);
   $("romOff").oninput = (e) => { const v = parseInt(e.target.value, 10); ROM.off = ROM.format === "raw" ? (v & ~31) : v; $("vRomOff").textContent = "0x" + ROM.off.toString(16); romSheetTiles(); };
+  $("romPhase").oninput = (e) => { ROM.phase = parseInt(e.target.value, 10) & 31; $("vRomPhase").textContent = ROM.phase; romSheetTiles(); };
   $("romGrabPal").onclick = () => { pal = decodePalAt(ROM.off); afterPalChange(); setStatus(`palette ← ROM @ 0x${ROM.off.toString(16)}`, "ok"); };
   $("romPalGG").onchange = (e) => { ROM.palGG = e.target.checked; };
 

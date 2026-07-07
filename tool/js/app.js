@@ -524,7 +524,7 @@
   // ---- ROM tile importer (drop a ROM, select a block, fill the source) ----
   // Reads raw Mode 4 tiles from any file. The selected WxH tile block tiles across the
   // whole source, then folds/dedups/bakes like any other pattern.
-  const ROM = { buf: null, off: 0, sw: 16, sh: 16, sel: null, palGG: false, format: "raw", tileBytes: null };
+  const ROM = { buf: null, off: 0, phase: 0, sw: 16, sh: 16, sel: null, palGG: false, format: "raw", tileBytes: null };
   const romSheet = $("romSheet");
   const romCtx = romSheet.getContext("2d");
   romSheet.width = ROM.sw * 8; romSheet.height = ROM.sh * 8;
@@ -535,11 +535,12 @@
   const romTileByte = (col, row) => (row * ROM.sw + col) * 32;
   function recomputeRomTiles() {
     if (!ROM.buf) return;
+    const rd = ROM.off + ROM.phase;                    // effective read offset (base + phase)
     if (ROM.format === "rnc") {
-      const r = SVJ.romdecode.rncUnpack(ROM.buf, ROM.off);
+      const r = SVJ.romdecode.rncUnpack(ROM.buf, rd);
       ROM.tileBytes = r.bytes;
-      setStatus(`RNC ${r.ok ? "✓ CRC ok" : "✗ no/!CRC"} · ${r.bytes.length} B @ 0x${ROM.off.toString(16)}`, r.ok ? "ok" : "err");
-    } else ROM.tileBytes = SVJ.romdecode.decode(ROM.buf, ROM.off, ROM.format);
+      setStatus(`RNC ${r.ok ? "✓ CRC ok" : "✗ no/!CRC"} · ${r.bytes.length} B @ 0x${rd.toString(16)}`, r.ok ? "ok" : "err");
+    } else ROM.tileBytes = SVJ.romdecode.decode(ROM.buf, rd, ROM.format);
   }
 
   // Set the ROM offset (byte-precise) and refresh everything that reads it.
@@ -611,6 +612,7 @@
       $("romPalScan").disabled = false;
       $("romPalUse").disabled = false;
       $("romFindRnc").disabled = false;
+      $("romPhase").disabled = false; ROM.phase = 0; $("romPhase").value = 0; $("vRomPhase").textContent = "0";
       ROM.palGG = /\.gg$/i.test(file.name);
       $("romPalGG").checked = ROM.palGG;
       setRomOff(0);
@@ -706,6 +708,7 @@
   };
   $("romFile").onchange = (e) => { if (e.target.files[0]) loadRom(e.target.files[0]); };
   $("romOff").oninput = (e) => setRomOff(ROM.format === "raw" ? (parseInt(e.target.value, 10) & ~31) : parseInt(e.target.value, 10));
+  $("romPhase").oninput = (e) => { ROM.phase = parseInt(e.target.value, 10) & 31; $("vRomPhase").textContent = ROM.phase; setRomOff(ROM.off); };
   $("romFill").onclick = fillSourceFromRom;
   const romImp = $("romImp");
   ["dragover", "dragenter"].forEach((ev) => romImp.addEventListener(ev, (e) => { e.preventDefault(); romImp.classList.add("drag"); }));
