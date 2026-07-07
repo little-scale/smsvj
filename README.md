@@ -24,8 +24,7 @@ Two browser apps (no build step — open the HTML directly, or `cd tool && pytho
   quantise an image, then stamp / select / move / rotate / mirror / invert / fill /
   pixel-edit, with undo. Exports a `.svjt` the look-patcher imports.
 
-Once **GitHub Pages** is enabled (Settings → Pages → `main` / root), they run online at
-`https://little-scale.github.io/smsvj/`.
+They run **locally** — open `tool/index.html` (or the root `index.html` for a launcher).
 
 ## Controls
 
@@ -113,6 +112,16 @@ corruption suite — render and boot on emulator. ROM graphics ripping supports 
 Star RLE, Sonic 1, Sonic 2/Aspect and RNC ProPack (RNC verified byte-exact against the
 reference compressor). The controller-1 grammar is wired and assemble-verified; sync input
 and MIDI/Link paths are next. See `CLAUDE.md` → Build order.
+
+## Companion projects
+
+- **[smsggdj](https://github.com/little-scale/smsggdj)** — the **tracker** SMSVJ is the
+  visual sibling to. Shares the clock vocabulary (tick / beat / bar), the SYNC contract on
+  controller port 2, and the LIVE-mode launch-quantize input core. Run one SMS as the
+  tracker and a second as the VJ, synced together.
+- **[smsggdj-link-esp32](https://github.com/little-scale/smsggdj-link-esp32)** — an ESP32
+  **Ableton Link** bridge that drives the shared `SYNC: IN` counter; can fan out to
+  multiple consoles (tracker + VJ) in parallel.
 
 ---
 

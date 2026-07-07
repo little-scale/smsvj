@@ -108,7 +108,7 @@ Built out, past Build order steps 1–3. What exists:
 - **`romdecode.js`** — ROM graphics decompressors (Raw, Phantasy Star RLE, Sonic 1, Sonic 2/
   Aspect, RNC ProPack 1/2) with per-format `Find` scanners.
 - Docs: `MANUAL.md` (user guide), `README.md`, `SCENE_FORMAT.md`, `EMULATION.md`, and a
-  root `index.html` landing page for GitHub Pages.
+  root `index.html` launcher (opened locally — the tools are not hosted).
 
 **16 tilesets and 16 palettes**, paired 1:1 (a `.svjt` imported into tileset N drops its
 palette in palette slot N). Remaining: **sync input** (reuse SMSGGDJ's SYNC IN reader) and
