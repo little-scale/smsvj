@@ -610,6 +610,7 @@
       $("romFill").disabled = true;
       $("romPalScan").disabled = false;
       $("romPalUse").disabled = false;
+      $("romFindRnc").disabled = false;
       ROM.palGG = /\.gg$/i.test(file.name);
       $("romPalGG").checked = ROM.palGG;
       setRomOff(0);
@@ -698,6 +699,11 @@
   }
   $("romFmt").innerHTML = SVJ.romdecode.FORMATS.map((f) => `<option value="${f.key}">${f.label}</option>`).join("");
   $("romFmt").onchange = (e) => { ROM.format = e.target.value; $("romOff").step = ROM.format === "raw" ? 32 : 1; if (ROM.buf) setRomOff(ROM.off); };
+  $("romFindRnc").onclick = () => {
+    const o = SVJ.romdecode.findRnc(ROM.buf, ROM.off + 1);
+    if (o < 0) { setStatus("no more RNC blocks found — wrapping", "err"); ROM.format = "rnc"; $("romFmt").value = "rnc"; $("romOff").step = 1; setRomOff(0); return; }
+    ROM.format = "rnc"; $("romFmt").value = "rnc"; $("romOff").step = 1; setRomOff(o);
+  };
   $("romFile").onchange = (e) => { if (e.target.files[0]) loadRom(e.target.files[0]); };
   $("romOff").oninput = (e) => setRomOff(ROM.format === "raw" ? (parseInt(e.target.value, 10) & ~31) : parseInt(e.target.value, 10));
   $("romFill").onclick = fillSourceFromRom;

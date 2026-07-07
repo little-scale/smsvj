@@ -209,6 +209,17 @@ SVJ.romdecode = (function () {
     return { bytes: out, ok };
   }
 
+  // Scan forward for the next CRC-valid RNC block (magic "RNC" + method 1/2, then
+  // full decode + CRC check to reject false ASCII hits). Returns offset or -1.
+  function findRnc(buf, from) {
+    for (let o = Math.max(0, from); o + 18 < buf.length; o++) {
+      if (buf[o] === 0x52 && buf[o + 1] === 0x4e && buf[o + 2] === 0x43 && (buf[o + 3] === 1 || buf[o + 3] === 2)) {
+        if (rncUnpack(buf, o).ok) return o;
+      }
+    }
+    return -1;
+  }
+
   function decode(buf, off, format) {
     if (format === "ps") return psDecode(buf, off);
     if (format === "s2") return s2Decode(buf, off);
@@ -216,5 +227,5 @@ SVJ.romdecode = (function () {
     return buf.subarray ? buf.subarray(off) : buf.slice(off); // raw view from offset
   }
 
-  return { FORMATS, decode, psDecode, s2Decode, rncUnpack };
+  return { FORMATS, decode, psDecode, s2Decode, rncUnpack, findRnc };
 })();
