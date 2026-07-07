@@ -489,13 +489,22 @@
   // ---- ROM tile importer (drop a ROM, select a block, fill the source) ----
   // Reads raw Mode 4 tiles from any file. The selected WxH tile block tiles across the
   // whole source, then folds/dedups/bakes like any other pattern.
-  const ROM = { buf: null, off: 0, sw: 16, sh: 16, sel: null };
+  const ROM = { buf: null, off: 0, sw: 16, sh: 16, sel: null, palGG: false };
   const romSheet = $("romSheet");
   const romCtx = romSheet.getContext("2d");
   romSheet.width = ROM.sw * 8; romSheet.height = ROM.sh * 8;
   let romDrag = null;
 
   const romTileOff = (col, row) => ROM.off + (row * ROM.sw + col) * 32;
+
+  // Set the ROM offset (byte-precise) and refresh everything that reads it.
+  function setRomOff(off) {
+    ROM.off = Math.max(0, Math.min(off, ROM.buf ? ROM.buf.length : 0));
+    const slider = $("romOff");
+    slider.value = Math.min(ROM.off, parseInt(slider.max, 10));
+    $("vRomOff").textContent = "0x" + ROM.off.toString(16);
+    renderRomSheet(); renderRomPalStrip(); updateRomSel();
+  }
 
   function renderRomSheet() {
     if (!ROM.buf) return;
@@ -549,16 +558,82 @@
     reader.onload = () => {
       ROM.buf = new Uint8Array(reader.result);
       ROM.off = 0; ROM.sel = null;
-      const slider = $("romOff");
-      slider.max = Math.max(0, ROM.buf.length - ROM.sw * ROM.sh * 32);
-      slider.value = 0; slider.disabled = false;
-      $("vRomOff").textContent = "0x0";
+      $("romOff").max = Math.max(0, ROM.buf.length - ROM.sw * ROM.sh * 32);
+      $("romOff").disabled = false;
       $("romInfo").textContent = `${file.name} · ${(ROM.buf.length / 1024) | 0} KB · ${(ROM.buf.length / 32) | 0} tiles`;
       $("romFill").disabled = true;
-      renderRomSheet(); updateRomSel();
+      $("romPalScan").disabled = false;
+      $("romPalUse").disabled = false;
+      ROM.palGG = /\.gg$/i.test(file.name);
+      $("romPalGG").checked = ROM.palGG;
+      setRomOff(0);
     };
     reader.readAsArrayBuffer(file);
   }
+
+  // ---- palette import ----
+  // Decode 32 CRAM entries at `off`. SMS = 1 byte/entry (6-bit 00BBGGRR); Game Gear =
+  // 2 bytes/entry (12-bit 0000BBBBGGGGRRRR), downsampled to 6-bit.
+  function decodePalAt(off) {
+    const out = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) {
+      if (ROM.palGG) {
+        const v = (ROM.buf[off + i * 2] || 0) | ((ROM.buf[off + i * 2 + 1] || 0) << 8);
+        out[i] = (((v >> 8) & 0xf) >> 2 << 4) | (((v >> 4) & 0xf) >> 2 << 2) | ((v & 0xf) >> 2);
+      } else {
+        out[i] = (ROM.buf[off + i] || 0) & 0x3f;
+      }
+    }
+    return out;
+  }
+  function renderRomPalStrip() {
+    const host = $("romPalStrip");
+    host.innerHTML = "";
+    if (!ROM.buf) return;
+    const pal = decodePalAt(ROM.off);
+    for (let i = 0; i < 32; i++) {
+      const el = document.createElement("i");
+      el.style.background = C.toHex(pal[i]);
+      el.title = `entry ${i} = 0x${pal[i].toString(16)}`;
+      host.appendChild(el);
+    }
+  }
+  // A 32-byte run reads as CRAM if every byte has its top 2 bits clear (<=0x3F),
+  // with some variety and not mostly zero. Game Gear: every colour's high byte <=0x0F.
+  function looksLikePalette(off) {
+    if (ROM.palGG) {
+      for (let i = 0; i < 32; i++) { const hi = ROM.buf[off + i * 2 + 1]; if (hi === undefined || hi > 0x0f) return false; }
+      return true;
+    }
+    const seen = new Set(); let zeros = 0;
+    for (let i = 0; i < 32; i++) {
+      const b = ROM.buf[off + i];
+      if (b === undefined || (b & 0xc0)) return false;
+      if (b === 0) zeros++;
+      seen.add(b);
+    }
+    return seen.size >= 8 && zeros <= 20;
+  }
+  function findPalettesFrom(from) {
+    const step = ROM.palGG ? 2 : 1, span = ROM.palGG ? 64 : 32;
+    for (let o = from; o <= ROM.buf.length - span; o += step) if (looksLikePalette(o)) return o;
+    return -1;
+  }
+  function scanPalettes() {
+    const o = findPalettesFrom(ROM.off + 1);
+    if (o < 0) { $("romPalInfo").textContent = "no more palette-like runs found — wrapping"; setRomOff(0); return; }
+    setRomOff(o);
+    $("romPalInfo").textContent = `palette candidate @ 0x${o.toString(16)} — Use palette to apply, or Find again`;
+  }
+  function useRomPalette() {
+    const pal = decodePalAt(ROM.off);
+    for (const s of bank.scenes) s.palettes[ui.editPal] = Uint8Array.from(pal);
+    buildCramGrid(); buildDrawSwatches(); drawAuthoring();
+    setStatus(`palette ${ui.editPal} ← ROM @ 0x${ROM.off.toString(16)}`, "ok");
+  }
+  $("romPalScan").onclick = scanPalettes;
+  $("romPalUse").onclick = useRomPalette;
+  $("romPalGG").onchange = (e) => { ROM.palGG = e.target.checked; renderRomPalStrip(); };
   function fillSourceFromRom() {
     if (!ROM.buf || !ROM.sel) return;
     const g = F.geometry(scene().mode);
@@ -576,11 +651,7 @@
     setStatus(`filled tileset ${ui.curScene} from ROM (${ROM.sel.w}×${ROM.sel.h} block)`, "ok");
   }
   $("romFile").onchange = (e) => { if (e.target.files[0]) loadRom(e.target.files[0]); };
-  $("romOff").oninput = (e) => {
-    ROM.off = parseInt(e.target.value, 10) & ~31;
-    $("vRomOff").textContent = "0x" + ROM.off.toString(16);
-    renderRomSheet(); updateRomSel();
-  };
+  $("romOff").oninput = (e) => setRomOff(parseInt(e.target.value, 10) & ~31);
   $("romFill").onclick = fillSourceFromRom;
   const romImp = $("romImp");
   ["dragover", "dragenter"].forEach((ev) => romImp.addEventListener(ev, (e) => { e.preventDefault(); romImp.classList.add("drag"); }));

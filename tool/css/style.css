@@ -109,3 +109,6 @@ button.on { background: var(--accent2); color: #2a0620; border-color: var(--acce
 #romOff { flex: 1; accent-color: var(--accent); }
 .romsheet { width: 100%; image-rendering: pixelated; cursor: crosshair; background: #000; margin: .2rem 0; }
 #romFill { margin-left: auto; }
+.rompal { margin-top: .5rem; border-top: 1px solid var(--edge); padding-top: .5rem; }
+.rompal #romPalStrip { margin: .2rem 0 .4rem; }
+.rompal #romPalUse { margin-left: auto; }
