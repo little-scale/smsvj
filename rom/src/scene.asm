@@ -107,6 +107,7 @@ scene_load:
   ld ix,(scene_addr)
   ; --- tiles ---  length = tile_count * 32
   ld a,(ix+SC_TILECOUNT)
+  ld (tile_count),a
   ld l,a
   ld h,0
   add hl,hl
@@ -122,11 +123,15 @@ scene_load:
   ld l,(ix+SC_OFF_TILES)
   ld h,(ix+SC_OFF_TILES+1)
   ld de,(scene_addr)
-  add hl,de
+  add hl,de                  ; HL = clean tiles ROM address
+  ld (tiles_src),hl          ; keep it for CHURN heal
   ex de,hl                   ; DE = src
   ld hl,VRAM_TILES
   call copy_to_vram
-  ; --- layouts ---
+  jp layout_reload           ; upload name-table variant(s), then return
+
+; Re-upload the scene's layout variant(s) to their 2 KB VRAM slots (undo SCRAMBLE).
+layout_reload:
   ld ix,(scene_addr)
   ld a,(ix+SC_LAYOUTCOUNT)
   ld (layout_count),a
@@ -160,6 +165,8 @@ layout_loop:
   ld (tmp_ptr),hl
   inc c
   djnz layout_loop
+  xor a
+  ld (layout_dirty),a
   ret
 
 ; ---- palette / live pipeline ---------------------------------------------
@@ -199,14 +206,25 @@ palette_reload_live:
 ; Recompose CRAM = palette cur_pal, then apply the sticky effect on top.
 recompose:
   call read_effect_record     ; decode current effect -> fx_type first
-  ; if the pattern data was moshed and we're no longer DATAMOSH, restore tiles
+  ; restore tiles if moshed and no longer a pattern-mosh (MELT 7 / CHURN 9)
   ld a,(tiles_dirty)
+  or a
+  jr z,rc_ck_layout
+  ld a,(fx_type)
+  cp 7
+  jr z,rc_ck_layout
+  cp 9
+  jr z,rc_ck_layout
+  call tiles_reload
+rc_ck_layout:
+  ; restore name table if scrambled and no longer SCRAMBLE (8)
+  ld a,(layout_dirty)
   or a
   jr z,rc_disp
   ld a,(fx_type)
-  cp 7                        ; DATAMOSH
+  cp 8
   jr z,rc_disp
-  call tiles_reload
+  call layout_reload
 rc_disp:
   ; display on (BLANK will turn it back off if selected)
   ld a,$E0
@@ -559,6 +577,115 @@ cs_ok:
   djnz cs_loop
   ld a,1
   ld (tiles_dirty),a
+  ret
+
+; CHURN: corrupt fx_p0 bytes, then heal fx_p1 bytes from the clean ROM tiles,
+; so the pattern boils forever instead of fully dissolving.
+churn_step:
+  call corrupt_step          ; corrupt fx_p0 (also sets tiles_dirty)
+  ld a,(fx_p1)
+  or a
+  ret z
+  ld b,a
+chn_loop:
+  push bc
+  call lfsr_next
+  ld a,h
+  and $07
+  ld h,a                     ; HL = 0..2047
+  ld de,(tile_bytes)         ; fold into [0, tile_bytes)
+  ld a,h
+  cp d
+  jr c,chn_ok
+  jr nz,chn_sub
+  ld a,l
+  cp e
+  jr c,chn_ok
+chn_sub:
+  or a
+  sbc hl,de
+chn_ok:
+  push hl                    ; VRAM offset
+  ld de,(tiles_src)
+  add hl,de                  ; ROM address of clean byte (scene's page)
+  ld a,(hl)
+  ld c,a                     ; clean value
+  pop hl
+  ld a,l
+  out (VDP_CTRL),a
+  ld a,h
+  or $40
+  out (VDP_CTRL),a
+  ld a,c
+  out (VDP_DATA),a
+  pop bc
+  djnz chn_loop
+  ret
+
+; SCRAMBLE: read fx_p0 name-table cells and toggle their flip / palette-bank
+; bits (word bits 9-11 = high-byte bits 1-3), reshuffling the SAME tiles into a
+; churning kaleidoscope. Non-destructive to patterns; layout_reload restores.
+scramble_step:
+  ld a,(fx_p0)
+  or a
+  ret z
+  ld b,a
+scr_loop:
+  push bc
+  call lfsr_next
+  ; cell offset = (HL & $07FE), folded to < 1536, added to name table $3800
+  ld a,h
+  and $07
+  ld h,a
+  ld a,l
+  and $FE
+  ld l,a                     ; HL = 0..2046 even
+  ld de,LAYOUT_BYTES         ; 1536
+  ld a,h
+  cp d
+  jr c,scr_ok
+  jr nz,scr_sub
+  ld a,l
+  cp e
+  jr c,scr_ok
+scr_sub:
+  or a
+  sbc hl,de
+scr_ok:
+  ld de,$3800
+  add hl,de                  ; HL = cell VRAM address
+  push hl
+  ; --- read the word (VRAM read: high byte without $40) ---
+  ld a,l
+  out (VDP_CTRL),a
+  ld a,h
+  out (VDP_CTRL),a
+  nop                        ; brief settle before reading
+  in a,(VDP_DATA)
+  ld e,a                     ; word low
+  in a,(VDP_DATA)
+  ld d,a                     ; word high
+  ; toggle flip/bank bits (high byte bits 1-3) from the LFSR
+  call lfsr_next
+  ld a,l
+  and $0E
+  xor d
+  ld d,a
+  ; --- write the word back ---
+  pop hl
+  ld a,l
+  out (VDP_CTRL),a
+  ld a,h
+  or $40
+  out (VDP_CTRL),a
+  ld a,e
+  out (VDP_DATA),a
+  ld a,d
+  out (VDP_DATA),a
+  pop bc
+  djnz scr_loop
+  ld a,1
+  ld (layout_dirty),a
   ret
 
 ; 16-bit Galois LFSR (taps $B400), advanced once.

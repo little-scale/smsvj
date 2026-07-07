@@ -103,9 +103,12 @@ mv_start        db          ; active movement CRAM range start
 mv_len          db          ; active movement CRAM range length
 mv_count        db          ; ticks-until-next movement step (down-counter)
 tmp_ptr         dw          ; scratch pointer (block copies)
-lfsr            dw          ; 16-bit LFSR for the DATAMOSH effect
+lfsr            dw          ; 16-bit LFSR for the corruption effects
 tile_bytes      dw          ; current scene tile_count * 32 (mosh range)
-tiles_dirty     db          ; VRAM pattern data has been corrupted
+tiles_src       dw          ; ROM address of the scene's clean tiles (for CHURN heal)
+tile_count      db          ; current scene tile count (SCRAMBLE index range)
+tiles_dirty     db          ; VRAM pattern data has been corrupted (MELT/CHURN)
+layout_dirty    db          ; VRAM name table has been scrambled (SCRAMBLE)
 fx_type         db          ; decoded active effect record
 fx_p0           db
 fx_p1           db

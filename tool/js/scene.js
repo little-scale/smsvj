@@ -58,7 +58,8 @@ SVJ.scene = (function () {
 
   // Shared axis config: NONE/INVERT/ROTATE/BLANK, and 4 movements where slot 0
   // FLOWS (boot movement) and slot 3 is STATIC to stop motion.
-  const EFFECTS = () => [fx(0x00, 0, 0, 0), fx(0x07, 24, 0, 0), fx(0x03, 1, 1, 15), fx(0x06, 0, 0, 0)];
+  // Corruption suite on the effects axis: clean / melt / churn / scramble.
+  const EFFECTS = () => [fx(0x00, 0, 0, 0), fx(0x07, 24, 0, 0), fx(0x09, 20, 16, 0), fx(0x08, 30, 0, 0)];
   const FLOW = () => [mv(0x01, 1, 1, 15), mv(0x02, 2, 1, 15), mv(0x03, 1, 1, 15), mv(0x00, 1, 0, 0)];
 
   const G = (o) => Object.assign(SVJ.generators.defaults(), o);

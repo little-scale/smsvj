@@ -21,7 +21,7 @@
 
   const $ = (id) => document.getElementById(id);
   const scene = () => bank.scenes[ui.curScene];
-  const EFFECT_NAMES = ["NONE", "LAYOUT", "INVERT", "ROTATE", "FREEZE_LATCH", "WOBBLE", "BLANK", "DATAMOSH"];
+  const EFFECT_NAMES = ["NONE", "LAYOUT", "INVERT", "ROTATE", "FREEZE_LATCH", "WOBBLE", "BLANK", "MELT", "SCRAMBLE", "CHURN"];
   const MOVE_NAMES = ["STATIC", "CYCLE_FWD", "CYCLE_BACK", "PINGPONG"];
 
   // ---- baking ----
@@ -233,11 +233,12 @@
     });
     const wobble = fx.type === 0x05 ? { amp: fx.p0 | 0, freq: (fx.p1 | 0) || 1, phase: ui.wobblePhase } : null;
 
-    // DATAMOSH: overwrite random tile pixels each frame in a working copy, so the
-    // shapes melt to noise while held; the copy is rebuilt clean when it's off or
-    // the scene changes (mirrors the ROM's tiles_reload).
+    // Corruption effects, mirroring the ROM. MELT(7)/CHURN(9) mutate a working
+    // copy of the tile patterns; SCRAMBLE(8) toggles flip/palette-bank bits of
+    // name-table cells. Copies rebuild clean when off or the scene changes.
     let tilesForRender = b.tiles;
-    if (fx.type === 0x07) {
+    let layoutForRender = b.layouts[layoutIdx];
+    if (fx.type === 0x07 || fx.type === 0x09) {
       if (!ui.moshTiles || ui.moshBase !== b) {
         ui.moshTiles = b.tiles.map((t) => t.map((r) => r.slice()));
         ui.moshBase = b;
@@ -247,11 +248,31 @@
         const ti = (Math.random() * ui.moshTiles.length) | 0;
         ui.moshTiles[ti][(Math.random() * 8) | 0][(Math.random() * 8) | 0] = (Math.random() * 16) | 0;
       }
+      if (fx.type === 0x09) {                 // CHURN heals p1 pixels back
+        const heal = (fx.p1 | 0) || 16;
+        for (let k = 0; k < heal; k++) {
+          const ti = (Math.random() * ui.moshTiles.length) | 0;
+          const py = (Math.random() * 8) | 0, px = (Math.random() * 8) | 0;
+          ui.moshTiles[ti][py][px] = b.tiles[ti][py][px];
+        }
+      }
       tilesForRender = ui.moshTiles;
-    } else {
-      ui.moshTiles = null; ui.moshBase = null;
-    }
-    R.renderLayout(pvImg, b.layouts[layoutIdx], tilesForRender, eff.pal, eff.blank, wobble);
+    } else { ui.moshTiles = null; ui.moshBase = null; }
+
+    if (fx.type === 0x08) {                    // SCRAMBLE toggles flip/bank bits
+      if (!ui.moshLayout || ui.moshLBase !== layoutForRender) {
+        ui.moshLayout = layoutForRender.slice();
+        ui.moshLBase = layoutForRender;
+      }
+      const cells = (fx.p0 | 0) || 30;
+      for (let k = 0; k < cells; k++) {
+        const ci = (Math.random() * ui.moshLayout.length) | 0;
+        ui.moshLayout[ci] ^= ((Math.random() * 8) | 0) << 9;  // bits 9/10/11
+      }
+      layoutForRender = ui.moshLayout;
+    } else { ui.moshLayout = null; ui.moshLBase = null; }
+
+    R.renderLayout(pvImg, layoutForRender, tilesForRender, eff.pal, eff.blank, wobble);
     pvCtx.putImageData(pvImg, 0, 0);
 
     const t = clk.state.tick;
