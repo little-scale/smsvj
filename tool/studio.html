@@ -61,6 +61,11 @@
         <span class="hint" id="brushInfo">pick a tile — click, or drag a group</span>
         <span class="flipbtns">flip <button id="flipH">H</button><button id="flipV">V</button></span>
       </div>
+      <div class="pixed">
+        <canvas id="pixCanvas" class="pixelcanvas pixcanvas" width="128" height="128"></canvas>
+        <p class="hint">Pixel edit: turn on <b>pixel edit</b> (Compose), click a cell to load it, then paint here.
+          Tile <b id="pixCell" class="mono">0,0</b> · paint index <b id="pixIdx" class="mono">1</b> (set from the solid strip).</p>
+      </div>
     </section>
 
     <!-- COMPOSE -->
@@ -90,11 +95,6 @@
         <span class="hint">colour replace</span>
         <select id="repFrom"></select> → <select id="repTo"></select>
         <button id="opReplace">Replace</button>
-      </div>
-      <div class="pixed">
-        <canvas id="pixCanvas" class="pixelcanvas pixcanvas" width="128" height="128"></canvas>
-        <p class="hint">Pixel edit: turn on <b>pixel edit</b>, click a cell to load it, then paint here.
-          Tile <b id="pixCell" class="mono">0,0</b> · paint index <b id="pixIdx" class="mono">1</b> (set from the solid strip).</p>
       </div>
     </section>
 
