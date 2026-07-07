@@ -122,15 +122,28 @@ lb_mv:
   ld (mv_count),a
   ret
 
-; Scene latch: scene / tileset (the heavy reload), on the beat.
+; Scene latch: scene / tileset (the heavy reload), on the beat. Compares the
+; effective index (bank*4 + slot) so a bank change reloads too.
 latch_scene:
+  ld a,(pend_bank)
+  add a,a
+  add a,a
+  ld b,a
   ld a,(pend_scene)
+  add a,b                    ; pending effective index
+  ld c,a
+  ld a,(cur_bank)
+  add a,a
+  add a,a
   ld b,a
   ld a,(cur_scene)
-  cp b
-  ret z
-  ld a,b
+  add a,b                    ; current effective index
+  cp c
+  ret z                      ; unchanged
+  ld a,(pend_scene)
   ld (cur_scene),a
+  ld a,(pend_bank)
+  ld (cur_bank),a
   call scene_resolve
   call scene_load
   call movement_apply

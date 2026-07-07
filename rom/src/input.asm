@@ -40,18 +40,34 @@ ri_decode:
   and PAD_B2
   jr z,ri_b1only
   ; --- B1 + B2 held ---
-  ld a,d
-  and PAD_LEFT|PAD_RIGHT
-  jr z,ri_freeze
-  ; tempo nudge (instant): right = +1, left = -1
+  ; up/down -> scene BANK select (of 4)
+  bit 0,d
+  jr z,ri_bb_down
+  ld hl,pend_bank
+  call nudge_up
+  call set_b2mod
+ri_bb_down:
+  bit 1,d
+  jr z,ri_bb_lr
+  ld hl,pend_bank
+  call nudge_down
+  call set_b2mod
+ri_bb_lr:
+  ; left/right -> tempo nudge (instant): right = +1, left = -1
   bit 3,d
-  call nz,tempo_up
+  jr z,ri_bb_l
+  call tempo_up
+  call set_b2mod
+ri_bb_l:
   bit 2,d
-  call nz,tempo_down
+  jr z,ri_bb_frz
+  call tempo_down
   call set_b2mod
-  jp ri_store
-ri_freeze:
-  call set_b2mod
+ri_bb_frz:
+  ; freeze only while B1+B2 held with NO d-pad currently held
+  ld a,c
+  and PAD_UP|PAD_DOWN|PAD_LEFT|PAD_RIGHT
+  jp nz,ri_store
   ld a,(freeze)
   or a
   jp nz,ri_store             ; already frozen

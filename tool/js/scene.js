@@ -63,24 +63,34 @@ SVJ.scene = (function () {
 
   const G = (o) => Object.assign(SVJ.generators.defaults(), o);
 
-  // ---- the four scene definitions: a repeating-lattice set, all flowing ----
+  // 16 scenes = 4 banks x 4. Both selectors stay 4-wide (2-bit each), so
+  // "everything is four" holds and per-index persistence still works. Effective
+  // scene index = bank*4 + slot. Every scene flows.
+  const sc = (mode, gen, thm) => ({
+    mode, generator: G(gen), variants: [0], theme: thm, primary: 8,
+    effects: EFFECTS(), movements: FLOW(),
+  });
   const DEFS = [
-    { // 0 — DIAMONDS: uniform full-frame nested diamonds (taxicab metric).
-      mode: "full", generator: G({ style: "metric", metric: "taxicab", period: 64, thickness: 3 }),
-      variants: [0], theme: "tide", primary: 8, effects: EFFECTS(), movements: FLOW(),
-    },
-    { // 1 — WEAVE: basket weave folded into a 4-way symmetric quilt.
-      mode: "quarter", generator: G({ style: "weave", cell: 16 }),
-      variants: [0], theme: "candy", primary: 8, effects: EFFECTS(), movements: FLOW(),
-    },
-    { // 2 — TRUCHET: flowing woven curves, warm palette.
-      mode: "quarter", generator: G({ style: "truchet", cell: 16 }),
-      variants: [0], theme: "sunset", primary: 8, effects: EFFECTS(), movements: FLOW(),
-    },
-    { // 3 — CHEVRON: marching zigzags, hi-sat neon.
-      mode: "quarter", generator: G({ style: "chevron", cell: 16 }),
-      variants: [0], theme: "neon", primary: 8, effects: EFFECTS(), movements: FLOW(),
-    },
+    // Bank 0 — LATTICE (repeating quilts)
+    sc("full",    { style: "metric", metric: "taxicab", period: 64, thickness: 3 }, "tide"),
+    sc("quarter", { style: "weave", cell: 16 }, "candy"),
+    sc("quarter", { style: "truchet", cell: 16 }, "sunset"),
+    sc("quarter", { style: "chevron", cell: 16 }, "neon"),
+    // Bank 1 — RADIAL (folded mandalas, radiate from the corner)
+    sc("quarter", { style: "metric", metric: "euclidean", period: 0, thickness: 6 }, "spectrum"),
+    sc("quarter", { style: "metric", metric: "angular", period: 0, thickness: 4 }, "ember"),
+    sc("quarter", { style: "metric", metric: "euclidean", period: 0, thickness: 6, spin: 30 }, "uv"),
+    sc("quarter", { style: "metric", metric: "chebyshev", period: 0, thickness: 6 }, "forest"),
+    // Bank 2 — GRID (tight full-frame tilings)
+    sc("full",    { style: "metric", metric: "taxicab", period: 32, thickness: 2 }, "neon"),
+    sc("full",    { style: "metric", metric: "chebyshev", period: 32, thickness: 2 }, "tide"),
+    sc("full",    { style: "metric", metric: "taxicab", period: 48, thickness: 3, rotation: 45 }, "candy"),
+    sc("full",    { style: "metric", metric: "euclidean", period: 40, thickness: 3 }, "sunset"),
+    // Bank 3 — FLOW (spirals & pinwheels)
+    sc("quarter", { style: "metric", metric: "euclidean", period: 0, thickness: 4, spin: 60 }, "spectrum"),
+    sc("quarter", { style: "truchet", cell: 24 }, "forest"),
+    sc("quarter", { style: "metric", metric: "angular", period: 0, thickness: 3, spin: 20 }, "uv"),
+    sc("quarter", { style: "chevron", cell: 20 }, "ember"),
   ];
 
   function makeSceneFrom(def) {

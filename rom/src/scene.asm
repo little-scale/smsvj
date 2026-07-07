@@ -10,9 +10,17 @@ bank_init:
   ld (region),a
   ld a,(bank_data+BANK_BPM)
   ld (bpm),a
-  ld a,(bank_data+BANK_BOOTSCENE)
+  ld a,(bank_data+BANK_BOOTSCENE)   ; boot scene 0-15
+  ld c,a
+  and 3
   ld (cur_scene),a
   ld (pend_scene),a
+  ld a,c
+  srl a
+  srl a                             ; boot >> 2 = bank
+  and 3
+  ld (cur_bank),a
+  ld (pend_bank),a
   ld a,(bank_data+BANK_BOOTPAL)
   ld (cur_pal),a
   ld (pend_pal),a
@@ -39,10 +47,24 @@ bank_init:
   call recompose
   ret
 
-; cur_scene -> scene_addr (= bank_data + scene_ptr[cur_scene]).
+; effective index (cur_bank*4 + cur_scene) -> scene_addr via scene_ptr[].
 scene_resolve:
-  ld a,(cur_scene)
+  ld a,(cur_bank)
   add a,a
+  add a,a                    ; bank*4
+  ld b,a
+  ld a,(cur_scene)
+  add a,b                    ; effective index 0-15
+  ; clamp to scene_count-1 (banks beyond what's embedded fall back)
+  ld c,a
+  ld a,(bank_data+BANK_SCENECOUNT)
+  dec a                      ; max valid index
+  cp c
+  jr nc,+
+  ld c,a                     ; clamp
++:
+  ld a,c
+  add a,a                    ; *2 (word offset)
   ld e,a
   ld d,0
   ld hl,bank_data+BANK_SCENEPTR

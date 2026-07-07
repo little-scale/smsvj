@@ -1,7 +1,8 @@
 ; ---------------------------------------------------------------------------
 ; SMSVJ ROM — hardware constants, memory map, SMS header, RAM variables.
-; Single 32 KB ROM: the whole image sits in $0000-$7FFF (mapper defaults), so
-; the embedded .svjb bank is addressed linearly with no paging.
+; 32 KB ROM, single linear slot ($0000-$7FFF). Holds up to ~2 banks of scenes
+; (24.5 KB of name tables don't compress, so all 4 banks / 16 scenes will need
+; ROM paging -- a follow-up). scene_count in the header caps the live index.
 ; ---------------------------------------------------------------------------
 
 .MEMORYMAP
@@ -42,12 +43,13 @@ BANKS 1
 
 ; ---- .svjb field offsets (see SCENE_FORMAT.md) ----------------------------
 .DEFINE BANK_REGION     5
+.DEFINE BANK_SCENECOUNT 6
 .DEFINE BANK_BPM        7
 .DEFINE BANK_BOOTSCENE  8
 .DEFINE BANK_BOOTPAL    9
 .DEFINE BANK_BOOTFX     10
 .DEFINE BANK_BOOTMV     11
-.DEFINE BANK_SCENEPTR   12
+.DEFINE BANK_SCENEPTR   12      ; scene_ptr[16] (4 banks x 4)
 .DEFINE SC_TILECOUNT    0
 .DEFINE SC_LAYOUTCOUNT  1
 .DEFINE SC_OFF_TILES    4
@@ -69,11 +71,13 @@ fpt_hi          db
 bpm             db          ; current INT tempo (tempo-nudge adjusts it)
 region          db          ; bit0: 1 = 50 Hz
 
-cur_scene       db
+cur_scene       db          ; slot within bank (0-3)
+cur_bank        db          ; scene bank (0-3); effective index = bank*4 + scene
 cur_pal         db
 cur_fx          db
 cur_mv          db
 pend_scene      db
+pend_bank       db
 pend_pal        db
 pend_fx         db
 pend_mv         db

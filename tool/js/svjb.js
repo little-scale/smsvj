@@ -37,19 +37,20 @@ SVJ.svjb = (function () {
       }
     });
 
+    const sceneCount = bank.scenes.length;   // 16 = 4 banks x 4
     const w = Writer();
-    // --- Bank header (20 bytes) ---
+    // --- Bank header (12 + sceneCount*2 bytes) ---
     w.raw([0x53, 0x56, 0x4a, 0x42]); // "SVJB"
     w.u8(VERSION);
     w.u8(bank.region & 0xff);
-    w.u8(4); // scene_count
+    w.u8(sceneCount);
     w.u8(bank.default_bpm & 0xff);
-    w.u8(bank.boot.scene & 3);
+    w.u8(bank.boot.scene & 0x0f);            // 0-15 (bank*4 + slot)
     w.u8(bank.boot.palette & 3);
     w.u8(bank.boot.effect & 3);
     w.u8(bank.boot.movement & 3);
     const scenePtrPos = w.len(); // offset 12
-    w.u16(0); w.u16(0); w.u16(0); w.u16(0); // placeholders
+    for (let i = 0; i < sceneCount; i++) w.u16(0); // scene_ptr[sceneCount] placeholders
 
     // --- Scenes ---
     const scenePtrs = [];
@@ -120,7 +121,7 @@ SVJ.svjb = (function () {
     if (bytes[4] !== VERSION) throw new Error("bad version: " + bytes[4]);
     const scene_count = bytes[6];
     const scenePtrs = [];
-    for (let i = 0; i < 4; i++) scenePtrs.push(dv.getUint16(12 + i * 2, true));
+    for (let i = 0; i < scene_count; i++) scenePtrs.push(dv.getUint16(12 + i * 2, true));
 
     const scenes = scenePtrs.map((base) => {
       const tile_count = bytes[base + 0];
