@@ -393,10 +393,50 @@
     }
   }
 
-  let tgtPaint = false, tgtSel = null, tgtSelDrag = null;
+  // ---- move/grab: cut a selected block and drop it elsewhere ----
+  function blockFrom(sel) {
+    const tiles = [];
+    for (let j = 0; j < sel.h; j++) {
+      const row = [];
+      for (let i = 0; i < sel.w; i++) {
+        const t = blankTile();
+        for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) t[r][c] = TGT.pixels[(sel.y + j) * 8 + r][(sel.x + i) * 8 + c] & 15;
+        row.push(t);
+      }
+      tiles.push(row);
+    }
+    return { w: sel.w, h: sel.h, tiles };
+  }
+  function clearTiles(sel) { for (let j = 0; j < sel.h; j++) for (let i = 0; i < sel.w; i++) writeTileAt(sel.x + i, sel.y + j, blankTile()); }
+  function writeBlockTiles(blk, cx, cy) {
+    for (let j = 0; j < blk.h; j++) for (let i = 0; i < blk.w; i++) {
+      const x = cx + i, y = cy + j; if (x < 0 || y < 0 || x >= TGT.tilesW || y >= TGT.tilesH) continue;
+      writeTileAt(x, y, blk.tiles[j][i]);
+    }
+  }
+  function renderMovePreview() {
+    renderTarget(); if (!moving) return; const s = tgtScale();
+    for (let j = 0; j < moving.blk.h; j++) for (let i = 0; i < moving.blk.w; i++) {
+      const x = moving.cx + i, y = moving.cy + j; if (x < 0 || y < 0 || x >= TGT.tilesW || y >= TGT.tilesH) continue;
+      const t = moving.blk.tiles[j][i];
+      for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const col = C.toRGB(pal[t[r][c] & 15] || 0); tctx.fillStyle = `rgb(${col.r},${col.g},${col.b})`; tctx.fillRect((x * 8 + c) * s, (y * 8 + r) * s, s, s); }
+    }
+    tctx.strokeStyle = "#57e0c8"; tctx.lineWidth = 2;
+    tctx.strokeRect(moving.cx * 8 * s + 1, moving.cy * 8 * s + 1, moving.blk.w * 8 * s - 2, moving.blk.h * 8 * s - 2);
+  }
+
+  let tgtPaint = false, tgtSel = null, tgtSelDrag = null, moving = null;
   tgt.addEventListener("mousedown", (e) => {
     const c = tgtCellAt(e);
     if ($("pixelMode").checked) { penTile.tx = c.tx; penTile.ty = c.ty; renderPix(); return; }
+    if ($("moveMode").checked) {
+      if (tgtSel && c.tx >= tgtSel.x && c.tx < tgtSel.x + tgtSel.w && c.ty >= tgtSel.y && c.ty < tgtSel.y + tgtSel.h) {
+        pushHistory();
+        moving = { blk: blockFrom(tgtSel), gdx: c.tx - tgtSel.x, gdy: c.ty - tgtSel.y, cx: tgtSel.x, cy: tgtSel.y };
+        clearTiles(tgtSel); renderMovePreview();
+      } else { tgtSelDrag = c; tgtSel = { x: c.tx, y: c.ty, w: 1, h: 1 }; renderTarget(); }
+      return;
+    }
     if ($("selectMode").checked) { tgtSelDrag = c; tgtSel = { x: c.tx, y: c.ty, w: 1, h: 1 }; renderTarget(); return; }
     pushHistory();
     if ($("bucket").checked) { floodFill(c.tx, c.ty); return; }
@@ -404,6 +444,11 @@
   });
   tgt.addEventListener("mousemove", (e) => {
     const c = tgtCellAt(e);
+    if (moving) {
+      moving.cx = Math.max(0, Math.min(c.tx - moving.gdx, TGT.tilesW - moving.blk.w));
+      moving.cy = Math.max(0, Math.min(c.ty - moving.gdy, TGT.tilesH - moving.blk.h));
+      renderMovePreview(); return;
+    }
     if (tgtSelDrag) {
       tgtSel = { x: Math.min(tgtSelDrag.tx, c.tx), y: Math.min(tgtSelDrag.ty, c.ty),
         w: Math.abs(c.tx - tgtSelDrag.tx) + 1, h: Math.abs(c.ty - tgtSelDrag.ty) + 1 };
@@ -412,7 +457,11 @@
     if (tgtPaint) stampAt(c.tx, c.ty);
   });
   window.addEventListener("mouseup", () => {
-    if (tgtSelDrag && tgtSel) captureTarget(tgtSel);
+    if (moving) {
+      writeBlockTiles(moving.blk, moving.cx, moving.cy);
+      tgtSel = { x: moving.cx, y: moving.cy, w: moving.blk.w, h: moving.blk.h };
+      moving = null; renderTarget(); renderPreview();
+    } else if (tgtSelDrag && tgtSel) captureTarget(tgtSel);
     tgtSelDrag = null; tgtPaint = false;
   });
   $("fillAll").onclick = fillAll;
