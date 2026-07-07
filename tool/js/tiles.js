@@ -13,6 +13,13 @@ SVJ.tiles = (function () {
   function hvflip(t) {
     return vflip(hflip(t));
   }
+  // Rotate an 8x8 tile 90 clockwise. NOT a VDP op (Mode 4 only mirrors), so this is a
+  // tool-side bake into new pixels. out[r][c] = in[7-c][r].
+  function rot90(t) {
+    const o = [];
+    for (let r = 0; r < SIZE; r++) { const row = []; for (let c = 0; c < SIZE; c++) row.push(t[SIZE - 1 - c][r]); o.push(row); }
+    return o;
+  }
   // Apply flip by 2-bit code: bit0 = H, bit1 = V.
   function applyFlip(t, code) {
     let r = t;

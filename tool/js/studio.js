@@ -249,6 +249,51 @@
     }
     renderTarget(); renderPreview();
   }
+  // ---- tile ops on stamped content (selection, or whole frame) ----
+  // Baked into pixels, since Mode 4 can't rotate/invert on-console.
+  function afterEdit() { renderTarget(); renderPreview(); }
+  const opRegion = () => tgtSel || { x: 0, y: 0, w: TGT.tilesW, h: TGT.tilesH };
+  function invertRegion() {
+    const s = opRegion();
+    for (let r = 0; r < s.h * 8; r++) for (let c = 0; c < s.w * 8; c++) {
+      const y = s.y * 8 + r, x = s.x * 8 + c; TGT.pixels[y][x] = 15 - (TGT.pixels[y][x] & 15);
+    }
+    afterEdit();
+  }
+  function mirrorHRegion() {
+    const s = opRegion(), W = s.w * 8;
+    for (let r = 0; r < s.h * 8; r++) { const y = s.y * 8 + r;
+      for (let c = 0; c < W >> 1; c++) { const a = s.x * 8 + c, b = s.x * 8 + W - 1 - c; const t = TGT.pixels[y][a]; TGT.pixels[y][a] = TGT.pixels[y][b]; TGT.pixels[y][b] = t; } }
+    afterEdit();
+  }
+  function mirrorVRegion() {
+    const s = opRegion(), H = s.h * 8;
+    for (let c = 0; c < s.w * 8; c++) { const x = s.x * 8 + c;
+      for (let r = 0; r < H >> 1; r++) { const a = s.y * 8 + r, b = s.y * 8 + H - 1 - r; const t = TGT.pixels[a][x]; TGT.pixels[a][x] = TGT.pixels[b][x]; TGT.pixels[b][x] = t; } }
+    afterEdit();
+  }
+  // Rotate the selected block 90 CW in place (dims swap, re-anchored top-left, clipped
+  // to the frame). Square selections rotate losslessly.
+  function rotateRegion() {
+    if (!tgtSel) { setStatus("select a block to rotate", "err"); return; }
+    const s = tgtSel, W = s.w * 8, H = s.h * 8;
+    const src = [];
+    for (let r = 0; r < H; r++) { const row = []; for (let c = 0; c < W; c++) row.push(TGT.pixels[s.y * 8 + r][s.x * 8 + c] & 15); src.push(row); }
+    for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) TGT.pixels[s.y * 8 + r][s.x * 8 + c] = 0; // clear original
+    const nH = W, nW = H;                                  // rotated pixel dims
+    for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
+      const y = s.y * 8 + c, x = s.x * 8 + (H - 1 - r);    // out[c][H-1-r] = src[r][c]
+      if (y < TGT.tilesH * 8 && x < TGT.tilesW * 8) TGT.pixels[y][x] = src[r][c];
+    }
+    tgtSel = { x: s.x, y: s.y, w: Math.min(s.h, TGT.tilesW - s.x), h: Math.min(s.w, TGT.tilesH - s.y) };
+    captureTarget(tgtSel);
+    afterEdit();
+  }
+  $("opRotate").onclick = rotateRegion;
+  $("opMirrorH").onclick = mirrorHRegion;
+  $("opMirrorV").onclick = mirrorVRegion;
+  $("opInvert").onclick = invertRegion;
+
   let tgtPaint = false, tgtSel = null, tgtSelDrag = null;
   tgt.addEventListener("mousedown", (e) => {
     const c = tgtCellAt(e);
