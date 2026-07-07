@@ -183,7 +183,7 @@
   function buildAxes() {
     document.querySelectorAll(".axbtns").forEach((host) => {
       const axis = host.dataset.axis;
-      const n = axis === "effect" ? 9 : 4;
+      const n = axis === "effect" ? 9 : axis === "scene" ? 8 : 4;
       host.innerHTML = "";
       for (let i = 0; i < n; i++) {
         const b = document.createElement("b");

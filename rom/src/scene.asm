@@ -17,17 +17,10 @@ bank_init:
   ld (region),a
   ld a,(BANKHDR+BANK_BPM)
   ld (bpm),a
-  ld a,(BANKHDR+BANK_BOOTSCENE)     ; boot scene 0-15
-  ld c,a
-  and 3
+  ld a,(BANKHDR+BANK_BOOTSCENE)     ; boot tileset 0-7
+  and 7
   ld (cur_scene),a
   ld (pend_scene),a
-  ld a,c
-  srl a
-  srl a                             ; boot >> 2 = bank
-  and 3
-  ld (cur_bank),a
-  ld (pend_bank),a
   ld a,(BANKHDR+BANK_BOOTPAL)
   ld (cur_pal),a
   ld (pend_pal),a
@@ -66,12 +59,7 @@ bank_init:
 ; straddles a page). Reads the pointer table from the header page first.
 scene_resolve:
   call page_hdr
-  ld a,(cur_bank)
-  add a,a
-  add a,a                    ; bank*4
-  ld b,a
-  ld a,(cur_scene)
-  add a,b                    ; effective index 0-15
+  ld a,(cur_scene)           ; tileset 0-7
   ; clamp to scene_count-1
   ld c,a
   ld a,(BANKHDR+BANK_SCENECOUNT)

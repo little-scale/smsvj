@@ -38,28 +38,28 @@ ri_decode:
   ld a,c
   and PAD_B2
   jr z,ri_b1only
-  ; --- B1 + B2 : L/R = scene, U/D = bank, (no d-pad) = freeze ---
-  bit 3,d                    ; right -> scene +1
+  ; --- B1 + B2 : L/R = tileset (of 8), U/D = palette (of 4), no d-pad = freeze ---
+  bit 3,d                    ; right -> tileset +1
   jr z,bb_l
   ld hl,pend_scene
-  call nudge_up
+  call nudge_s8_up
   call set_b2mod
 bb_l:
-  bit 2,d                    ; left -> scene -1
+  bit 2,d                    ; left -> tileset -1
   jr z,bb_u
   ld hl,pend_scene
-  call nudge_down
+  call nudge_s8_down
   call set_b2mod
 bb_u:
-  bit 0,d                    ; up -> bank +1
+  bit 0,d                    ; up -> palette +1
   jr z,bb_d
-  ld hl,pend_bank
+  ld hl,pend_pal
   call nudge_up
   call set_b2mod
 bb_d:
-  bit 1,d                    ; down -> bank -1
+  bit 1,d                    ; down -> palette -1
   jr z,bb_frz
-  ld hl,pend_bank
+  ld hl,pend_pal
   call nudge_down
   call set_b2mod
 bb_frz:
@@ -91,19 +91,7 @@ ri_b2only:
   ld a,c
   and PAD_B2
   jr z,ri_none               ; neither B1 nor B2 held
-  ; B2 : L/R = palette ; U/D = movement (all set b2_mod)
-  bit 3,d
-  jr z,b2_l
-  ld hl,pend_pal
-  call nudge_up
-  call set_b2mod
-b2_l:
-  bit 2,d
-  jr z,b2_u
-  ld hl,pend_pal
-  call nudge_down
-  call set_b2mod
-b2_u:
+  ; B2 : U/D = movement (palette lives on the B1+B2 combo now)
   bit 0,d
   jr z,b2_d
   ld hl,pend_mv
@@ -149,6 +137,20 @@ nudge_down:
   ld a,(hl)
   dec a
   and 3
+  ld (hl),a
+  ret
+
+; Tileset selector: wrap modulo 8.
+nudge_s8_up:
+  ld a,(hl)
+  inc a
+  and 7
+  ld (hl),a
+  ret
+nudge_s8_down:
+  ld a,(hl)
+  dec a
+  and 7
   ld (hl),a
   ret
 

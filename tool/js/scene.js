@@ -78,34 +78,29 @@ SVJ.scene = (function () {
 
   const G = (o) => Object.assign(SVJ.generators.defaults(), o);
 
-  // 16 scenes = 4 banks x 4. Both selectors stay 4-wide (2-bit each), so
-  // "everything is four" holds and per-index persistence still works. Effective
-  // scene index = bank*4 + slot. Every scene flows.
-  const sc = (mode, gen, thm) => ({
-    mode, generator: G(gen), variants: [0], theme: thm, primary: 8,
-    effects: EFFECTS(), movements: FLOW(),
-  });
+  // Four GLOBAL palettes, shared by every tileset. Because they're identical
+  // across tilesets, palette and tileset are independent: switching tileset
+  // keeps the palette, switching palette keeps the tileset. (B1+B2: up/down =
+  // palette of 4, left/right = tileset of 8.)
+  const GLOBAL_PALETTES = [
+    ramp(THEMES.spectrum),
+    ramp(THEMES.ember),
+    ramp(THEMES.tide),
+    ramp(THEMES.uv),
+  ];
+
+  // 8 fresh tilesets — a distinct geometric pattern each.
+  const sc = (mode, gen) => ({ mode, generator: G(gen), variants: [0], primary: 8,
+    effects: EFFECTS(), movements: FLOW() });
   const DEFS = [
-    // Bank 0 — LATTICE (repeating quilts)
-    sc("full",    { style: "metric", metric: "taxicab", period: 64, thickness: 3 }, "tide"),
-    sc("quarter", { style: "weave", cell: 16 }, "candy"),
-    sc("quarter", { style: "truchet", cell: 16 }, "sunset"),
-    sc("quarter", { style: "chevron", cell: 16 }, "neon"),
-    // Bank 1 — RADIAL (folded mandalas, radiate from the corner)
-    sc("quarter", { style: "metric", metric: "euclidean", period: 0, thickness: 6 }, "spectrum"),
-    sc("quarter", { style: "metric", metric: "angular", period: 0, thickness: 4 }, "ember"),
-    sc("quarter", { style: "metric", metric: "euclidean", period: 0, thickness: 6, spin: 30 }, "uv"),
-    sc("quarter", { style: "metric", metric: "chebyshev", period: 0, thickness: 6 }, "forest"),
-    // Bank 2 — GRID (tight full-frame tilings)
-    sc("full",    { style: "metric", metric: "taxicab", period: 32, thickness: 2 }, "neon"),
-    sc("full",    { style: "metric", metric: "chebyshev", period: 32, thickness: 2 }, "tide"),
-    sc("full",    { style: "metric", metric: "taxicab", period: 48, thickness: 3, rotation: 45 }, "candy"),
-    sc("full",    { style: "metric", metric: "euclidean", period: 40, thickness: 3 }, "sunset"),
-    // Bank 3 — FLOW (spirals & pinwheels)
-    sc("quarter", { style: "metric", metric: "euclidean", period: 0, thickness: 4, spin: 60 }, "spectrum"),
-    sc("quarter", { style: "truchet", cell: 24 }, "forest"),
-    sc("quarter", { style: "metric", metric: "angular", period: 0, thickness: 3, spin: 20 }, "uv"),
-    sc("quarter", { style: "chevron", cell: 20 }, "ember"),
+    sc("full",    { style: "wave", period: 40, spin: 1.2 }),                                  // sine interference
+    sc("full",    { style: "grid", period: 24, thickness: 2 }),                               // mesh lattice
+    sc("quarter", { style: "metric", metric: "euclidean", period: 0, thickness: 4 }),         // ring mandala
+    sc("full",    { style: "metric", metric: "taxicab", period: 40, rotation: 45, thickness: 3 }), // argyle
+    sc("quarter", { style: "metric", metric: "angular", period: 0, thickness: 3 }),           // pinwheel
+    sc("quarter", { style: "metric", metric: "euclidean", period: 0, spin: 90, thickness: 5 }), // spiral
+    sc("full",    { style: "metric", metric: "chebyshev", period: 32, rotation: 20, thickness: 2 }), // tilted squares
+    sc("quarter", { style: "truchet", cell: 20 }),                                            // woven curves
   ];
 
   function makeSceneFrom(def) {
@@ -118,7 +113,7 @@ SVJ.scene = (function () {
       tileBudget: def.tileBudget || 48,   // cap for fast scene/tile swaps
       bank: 0,
       priority: 0,
-      palettes: theme(THEMES[def.theme]),
+      palettes: GLOBAL_PALETTES.map((p) => Uint8Array.from(p)), // identical -> decoupled
       primary: [def.primary, def.primary, def.primary, def.primary],
       effects: def.effects.map((e) => ({ ...e })),
       movements: def.movements.map((m) => ({ ...m })),

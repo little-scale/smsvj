@@ -45,9 +45,9 @@ const bank = SVJ.scene.makeBank();
 const { bytes } = SVJ.svjb.serialize(bank);
 ok(bytes[0] === 0x53 && bytes[1] === 0x56 && bytes[2] === 0x4a && bytes[3] === 0x42, "serialize: magic 'SVJB'");
 ok(bytes[4] === 1, "serialize: version 1");
-ok(bytes[6] === 16, "serialize: scene_count 16 (4 banks x 4)");
+ok(bytes[6] === 8, "serialize: scene_count 8 (tilesets)");
 const info = SVJ.svjb.decode(bytes);
-ok(info.scenes.length === 16, "decode: 16 scenes, all offsets self-consistent");
+ok(info.scenes.length === 8, "decode: 8 scenes, all offsets self-consistent");
 console.log("  bank size:", bytes.length, "bytes; tiles per scene:", info.scenes.map((s) => s.tile_count).join(", "));
 
 // 5. A 4-way folded (quarter-mode) scene must bake both H- and V-flipped

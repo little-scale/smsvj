@@ -16,12 +16,24 @@ SVJ.generators = (function () {
     angular:   (x, y) => (Math.atan2(y, x) / (2 * Math.PI) + 0.5) * 64, // spokes/pie
   };
   const METRIC_KEYS = Object.keys(METRICS);
-  const STYLES = ["metric", "weave", "truchet", "chevron"];
+  const STYLES = ["metric", "weave", "truchet", "chevron", "wave", "grid"];
 
   // Cell styles ------------------------------------------------------------
   function weaveIdx(x, y, cell) {
     const over = (Math.floor(x / cell) + Math.floor(y / cell)) & 1;
     return idx((over ? (y % cell) : (x % cell)) + (over ? 0 : 7));
+  }
+  // Sine interference: sin(x) + sin(y) (with a slight freq offset -> moiré).
+  function waveIdx(x, y, p) {
+    const f = (2 * Math.PI) / (p.period || 32);
+    const v = Math.sin(x * f) + Math.sin(y * f * 1.31 + p.spin);
+    return idx(((v + 2) / 4) * 15 / (p.thickness || 1) * 4);
+  }
+  // Mesh: distance to the nearest grid line -> a woven lattice of bars.
+  function gridIdx(x, y, p) {
+    const per = p.period || 24, h = per / 2;
+    const gx = Math.abs((x % per) - h), gy = Math.abs((y % per) - h);
+    return idx(Math.min(gx, gy) / (p.thickness || 2));
   }
   function truchetIdx(x, y, cell) {
     const cx = x % cell, cy = y % cell;
@@ -53,6 +65,8 @@ SVJ.generators = (function () {
         if (p.style === "weave") { row[x] = weaveIdx(x, y, p.cell); continue; }
         if (p.style === "truchet") { row[x] = truchetIdx(x, y, p.cell); continue; }
         if (p.style === "chevron") { row[x] = chevronIdx(x, y, p.cell); continue; }
+        if (p.style === "wave") { row[x] = waveIdx(x, y, p); continue; }
+        if (p.style === "grid") { row[x] = gridIdx(x, y, p); continue; }
         // metric style: optional lattice fold, then rotate coords, then measure.
         let px_ = x, py_ = y;
         if (p.period > 0) { px_ = (x % p.period) - p.period / 2; py_ = (y % p.period) - p.period / 2; }

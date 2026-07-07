@@ -10,7 +10,7 @@ all: $(ROM)
 
 # Regenerate the embedded scene bank from the browser emitter.
 # ROM_SCENES = scenes embedded in the paged 96 KB ROM (4 banks of 4 = 16).
-ROM_SCENES ?= 16
+ROM_SCENES ?= 8
 
 $(ASSET):
 	node ../tool/export-bank.js $@ $(ROM_SCENES)

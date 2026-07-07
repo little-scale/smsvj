@@ -52,18 +52,19 @@ Each button owns a theme — B1 = effect, B2 = look, B1+B2 = source:
 |---|---|---|
 | B1 + ↑/↓ | **effect dial** (of 9: NONE centre, 4 glitch up, 4 colour down) | tick |
 | B1 + ←/→ | **effect speed** (0–3, runs 1<<n corruptions/frame) | instant |
-| B2 + ←/→ | palette (of 4) | tick |
 | B2 + ↑/↓ | movement (of 4) | tick |
-| B1+B2 + ←/→ | scene / tileset (of 4, within bank) | beat |
-| B1+B2 + ↑/↓ | scene **bank** (of 4) | beat |
+| B1+B2 + ←/→ | **tileset** (of 8) — palette stays | beat |
+| B1+B2 + ↑/↓ | **palette** (of 4) — tileset stays | tick |
 | B2 tap (alone) | overlay show/hide | instant (on release) |
 | B1+B2 (no d-pad) | freeze to primary (flat, momentary) | instant |
 
-Latches are tightened from the original beat/bar to **tick** (palette/effect/movement)
-and **beat** (scene/bank) for live responsiveness. Scenes are **4 banks × 4** (16 total).
-The **effect dial** is the corruption suite: up = SCRAMBLE / SMEAR-H / SMEAR-V / CHURN,
-down = INVERT / ROTATE↑ / ROTATE↓ / BLANK. Tempo-nudge was dropped (tempo comes from
-Link/sync). Corruption runs per-frame (speed-scaled) plus a beat kick.
+**Palette and tileset are independent** (no "bank"): the B1+B2 combo mixes them — ←/→
+swaps the tileset keeping the palette, ↑/↓ swaps the palette keeping the tileset. There
+are **8 tilesets and 4 (global) palettes**. Latches: palette/effect/movement on the
+**tick**, tileset on the **beat**. The **effect dial** is all corruption: down = SMEAR-D
+/ STAMP / XOR / MORPH, centre = NONE, up = SCRAMBLE / SMEAR-H / SMEAR-V / CHURN. Tempo-
+nudge dropped (tempo comes from Link/sync). Corruption runs per-frame (speed-scaled)
+plus a beat kick.
 
 Edge-detect the D-pad (release before it steps again). B2 disambiguates tap-vs-hold on
 release: if any D-pad/B1 happened during the hold it was a modifier and the tap is
