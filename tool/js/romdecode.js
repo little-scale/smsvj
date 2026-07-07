@@ -220,6 +220,34 @@ SVJ.romdecode = (function () {
     return -1;
   }
 
+  // Phantasy Star RLE has no header, so detect it structurally: 4 consecutive bitplanes
+  // that each RLE-decode to the SAME length (multiple of 8, >= 16 tiles) and actually
+  // compress. Strong signature, very low false-positive rate. Returns offset or -1.
+  function psPlaneLen(buf, off) {              // {outLen, off} past the 00 terminator, or null
+    let out = 0;
+    for (;;) {
+      if (off >= buf.length) return null;
+      const c = buf[off++];
+      if (c === 0) return { outLen: out, off };
+      const n = c & 0x7f;
+      if (c & 0x80) { off += n; out += n; } else { off += 1; out += n; }
+      if (off > buf.length) return null;
+    }
+  }
+  function findPS(buf, from) {
+    for (let o = Math.max(0, from); o < buf.length - 8; o++) {
+      let off = o, len0 = -1, ok = true;
+      for (let p = 0; p < 4; p++) {
+        const r = psPlaneLen(buf, off); if (!r) { ok = false; break; }
+        if (p === 0) len0 = r.outLen; else if (r.outLen !== len0) { ok = false; break; }
+        off = r.off;
+      }
+      if (!ok || len0 < 128 || len0 % 8 !== 0) continue;   // >= 16 tiles, whole tiles
+      if (off - o < (len0 / 8) * 32) return o;              // actually compressed
+    }
+    return -1;
+  }
+
   function decode(buf, off, format) {
     if (format === "ps") return psDecode(buf, off);
     if (format === "s2") return s2Decode(buf, off);
@@ -227,5 +255,5 @@ SVJ.romdecode = (function () {
     return buf.subarray ? buf.subarray(off) : buf.slice(off); // raw view from offset
   }
 
-  return { FORMATS, decode, psDecode, s2Decode, rncUnpack, findRnc };
+  return { FORMATS, decode, psDecode, s2Decode, rncUnpack, findRnc, findPS };
 })();

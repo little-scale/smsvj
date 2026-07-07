@@ -617,6 +617,7 @@
       $("romPalScan").disabled = false;
       $("romPalUse").disabled = false;
       $("romFindRnc").disabled = false;
+      $("romFindRle").disabled = false;
       $("romPhase").disabled = false; ROM.phase = 0; $("romPhase").value = 0; $("vRomPhase").textContent = "0";
       ROM.palGG = /\.gg$/i.test(file.name);
       $("romPalGG").checked = ROM.palGG;
@@ -710,6 +711,12 @@
     const o = SVJ.romdecode.findRnc(ROM.buf, ROM.off + 1);
     if (o < 0) { setStatus("no more RNC blocks found — wrapping", "err"); ROM.format = "rnc"; $("romFmt").value = "rnc"; $("romOff").step = 1; setRomOff(0); return; }
     ROM.format = "rnc"; $("romFmt").value = "rnc"; $("romOff").step = 1; setRomOff(o);
+  };
+  $("romFindRle").onclick = () => {
+    const o = SVJ.romdecode.findPS(ROM.buf, ROM.off + 1);
+    ROM.format = "ps"; $("romFmt").value = "ps"; $("romOff").step = 1; ROM.phase = 0; $("romPhase").value = 0; $("vRomPhase").textContent = "0";
+    if (o < 0) { setStatus("no more RLE blocks found — wrapping", "err"); setRomOff(0); return; }
+    setRomOff(o); setStatus(`Phantasy Star RLE @ 0x${o.toString(16)}`, "ok");
   };
   $("romFile").onchange = (e) => { if (e.target.files[0]) loadRom(e.target.files[0]); };
   $("romOff").oninput = (e) => setRomOff(ROM.format === "raw" ? (parseInt(e.target.value, 10) & ~31) : parseInt(e.target.value, 10));

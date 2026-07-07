@@ -124,6 +124,7 @@
       $("romOff").max = Math.max(0, ROM.buf.length - 256 * 32); $("romOff").value = 0; $("romOff").disabled = false;
       $("vRomOff").textContent = "0x0"; $("romGrabPal").disabled = false; $("romFindRnc").disabled = false;
       ROM.phase = 0; $("romPhase").disabled = false; $("romPhase").value = 0; $("vRomPhase").textContent = "0";
+      $("romFindRle").disabled = false;
       ROM.palGG = /\.gg$/i.test(file.name); $("romPalGG").checked = ROM.palGG;
       $("romInfo").textContent = `${file.name} · ${(ROM.buf.length / 1024) | 0} KB`;
       romSheetTiles();
@@ -155,6 +156,13 @@
     const o = SVJ.romdecode.findRnc(ROM.buf, ROM.off + 1);
     if (o < 0) { setStatus("no more RNC blocks — wrapping", "err"); ROM.off = 0; }
     else { ROM.off = o; ROM.format = "rnc"; $("romFmt").value = "rnc"; $("romOff").step = 1; }
+    $("romOff").value = Math.min(ROM.off, +$("romOff").max); $("vRomOff").textContent = "0x" + ROM.off.toString(16);
+    romSheetTiles();
+  };
+  $("romFindRle").onclick = () => {
+    const o = SVJ.romdecode.findPS(ROM.buf, ROM.off + 1);
+    if (o < 0) { setStatus("no more RLE blocks — wrapping", "err"); ROM.off = 0; }
+    else { ROM.off = o; ROM.phase = 0; $("romPhase").value = 0; $("vRomPhase").textContent = "0"; ROM.format = "ps"; $("romFmt").value = "ps"; $("romOff").step = 1; setStatus(`Phantasy Star RLE @ 0x${o.toString(16)}`, "ok"); }
     $("romOff").value = Math.min(ROM.off, +$("romOff").max); $("vRomOff").textContent = "0x" + ROM.off.toString(16);
     romSheetTiles();
   };
