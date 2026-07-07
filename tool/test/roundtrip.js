@@ -55,8 +55,13 @@ const b0 = SVJ.svjb.bakeScene(bank.scenes[0]);
 const word = b0.layouts[0][0 * 32 + 31]; // row 0, col 31 = top-right
 ok(((word >> 9) & 1) === 1, "layout word: top-right cell has H-flip bit set");
 
-// 6. VRAM/size sanity: default quarter scene stays well under 255 tiles.
-ok(b0.tiles.length <= 255, "scene 0 unique tiles <= 255 (" + b0.tiles.length + ")");
+// 6. Per-scene budget: <=255 unique tiles AND tiles+layouts fit in 16 KB VRAM
+//    (each layout = a 2 KB slot; leave headroom for the SAT).
+info.scenes.forEach((s, i) => {
+  const vram = s.tile_count * 32 + s.layout_count * 2048;
+  ok(s.tile_count <= 255 && vram <= 16384,
+    `scene ${i}: ${s.tile_count} tiles, ${s.layout_count} layout(s), ${vram} B VRAM <= 16384`);
+});
 
 console.log(fails === 0 ? "\nALL PASS" : `\n${fails} FAILURE(S)`);
 process.exit(fails ? 1 : 0);
