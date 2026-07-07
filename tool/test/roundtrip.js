@@ -50,10 +50,12 @@ const info = SVJ.svjb.decode(bytes);
 ok(info.scenes.length === 4, "decode: 4 scenes, all offsets self-consistent");
 console.log("  bank size:", bytes.length, "bytes; tiles per scene:", info.scenes.map((s) => s.tile_count).join(", "));
 
-// 5. layout word bit-packing: a folded top-right cell should carry the H flip bit (9).
-const b0 = SVJ.svjb.bakeScene(bank.scenes[0]);
-const word = b0.layouts[0][0 * 32 + 31]; // row 0, col 31 = top-right
-ok(((word >> 9) & 1) === 1, "layout word: top-right cell has H-flip bit set");
+// 5. A 4-way folded (quarter-mode) scene must bake both H- and V-flipped
+//    name-table words somewhere (the mirror halves reference flipped tiles).
+const bq = SVJ.svjb.bakeScene(bank.scenes.find((s) => s.mode === "quarter"));
+let anyH = false, anyV = false;
+for (const wd of bq.layouts[0]) { if ((wd >> 9) & 1) anyH = true; if ((wd >> 10) & 1) anyV = true; }
+ok(anyH && anyV, "quarter fold bakes H- and V-flipped name-table words");
 
 // 6. Per-scene budget: <=255 unique tiles AND tiles+layouts fit in 16 KB VRAM
 //    (each layout = a 2 KB slot; leave headroom for the SAT).

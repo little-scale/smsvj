@@ -40,37 +40,59 @@ SVJ.scene = (function () {
     spectrum: { rp: 0, gp: 2.1, bp: 4.2, freq: 1, backdrop: 0 },       // full rainbow
     ember:    { rp: 0.2, gp: 0.8, bp: 1.4, freq: 1, backdrop: 0 },     // fire/warm
     neon:     { rp: 1.0, gp: 3.0, bp: 5.0, freq: 2, backdrop: 0 },     // punchy hi-sat
-    tide:     { rp: 3.6, gp: 4.6, bp: 0.4, freq: 1, backdrop: 0 },     // cyan/violet
+    tide:     { rp: 3.6, gp: 4.6, bp: 0.4, freq: 1, backdrop: 0 },     // yellow/blue
+    candy:    { rp: 0.0, gp: 1.2, bp: 5.4, freq: 1.5, backdrop: 0 },   // pink/magenta/cyan
+    forest:   { rp: 2.6, gp: 1.4, bp: 3.2, freq: 1, backdrop: 0 },     // green/gold
+    uv:       { rp: 4.4, gp: 5.4, bp: 3.4, freq: 1.5, backdrop: 0 },   // violet/blue
+    sunset:   { rp: 0.3, gp: 1.1, bp: 2.6, freq: 1, backdrop: 0 },     // orange/pink/purple
   };
 
-  // ---- source pattern generators ------------------------------------------
-  // Each fills px[y][x] with a CRAM index 0..15. Quarter-mode patterns radiate
-  // from (0,0) since that corner maps to the kaleidoscope centre after the fold.
-  function fillRings(px, w, h) {
+  // ---- source pattern generators (all repeating / tileable) ---------------
+  // Each fills px[y][x] with a CRAM index 0..15. Periodic so they read as a
+  // lattice; quarter mode then folds them into a 4-way symmetric quilt, full
+  // mode tiles them straight. idx() wraps a value into the live range 1..15.
+  const idx = (v) => 1 + (((v % 15) + 15) % 15);
+
+  // Nested diamonds (taxicab metric). period = tile pitch, div = band thickness.
+  function fillDiamonds(px, w, h, period, div) {
+    const p = period || 64, d = div || 3, half = p / 2;
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const d = Math.sqrt(x * x + y * y);
-      px[y][x] = 1 + (Math.floor(d / 6) % 15);
+      const u = (x % p) - half, v = (y % p) - half;
+      px[y][x] = idx(Math.floor((Math.abs(u) + Math.abs(v)) / d));
     }
   }
-  function fillXor(px, w, h) {
+  // Concentric squares (Chebyshev metric) -> boxed-in rings.
+  function fillNested(px, w, h) {
+    const p = 48, half = 24;
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      px[y][x] = 1 + (((x >> 3) ^ (y >> 3)) % 15);
+      const u = Math.abs((x % p) - half), v = Math.abs((y % p) - half);
+      px[y][x] = idx(Math.floor(Math.max(u, v) / 2));
     }
   }
-  function fillSpiral(px, w, h) {
+  // Basket weave: alternating horizontal / vertical strands, shaded across.
+  function fillWeave(px, w, h) {
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const a = Math.atan2(y + 0.5, x + 0.5);
-      const r = Math.sqrt(x * x + y * y);
-      px[y][x] = 1 + (((Math.floor((a / (Math.PI / 2)) * 15) + Math.floor(r / 4)) % 15) + 15) % 15;
+      const over = (Math.floor(x / 16) + Math.floor(y / 16)) & 1;
+      const v = over ? (y % 16) : (x % 16);
+      px[y][x] = idx(v + (over ? 0 : 7));
     }
   }
-  // Full-frame lattice: a 64px diamond motif tiled across the screen. Repetition
-  // keeps the unique-tile count small in full mode (no fold to shrink it).
-  function fillLattice(px, w, h) {
+  // Truchet: quarter-arc tiles that alternate orientation -> flowing woven curves.
+  function fillTruchet(px, w, h) {
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const u = (x % 64) - 32, v = (y % 64) - 32;
-      const d = Math.abs(u) + Math.abs(v);
-      px[y][x] = 1 + (Math.floor(d / 3) % 15);
+      const cx = x % 16, cy = y % 16;
+      const orient = (Math.floor(x / 16) ^ Math.floor(y / 16)) & 1;
+      const d = orient
+        ? Math.min(Math.hypot(cx, cy), Math.hypot(16 - cx, 16 - cy))
+        : Math.min(Math.hypot(16 - cx, cy), Math.hypot(cx, 16 - cy));
+      px[y][x] = idx(Math.floor(d / 1.4));
+    }
+  }
+  // Zigzag chevrons marching down the screen.
+  function fillChevron(px, w, h) {
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const v = Math.abs((x % 32) - 16);
+      px[y][x] = idx(Math.floor((y + v) / 3));
     }
   }
 
@@ -79,27 +101,28 @@ SVJ.scene = (function () {
     return { type, division, range_start, range_len };
   }
 
-  // ---- the four scene definitions -----------------------------------------
+  // Shared axis config: NONE/INVERT/ROTATE/BLANK, and 4 movements where slot 0
+  // FLOWS (boot movement) and slot 3 is STATIC to stop motion.
+  const EFFECTS = () => [fx(0x00, 0, 0, 0), fx(0x02, 0, 1, 15), fx(0x03, 1, 1, 15), fx(0x06, 0, 0, 0)];
+  const FLOW = () => [mv(0x01, 1, 1, 15), mv(0x02, 2, 1, 15), mv(0x03, 1, 1, 15), mv(0x00, 1, 0, 0)];
+
+  // ---- the four scene definitions: a repeating-lattice set, all flowing ----
   const DEFS = [
-    { // 0 — MANDALA: concentric rings, 4-way fold + a no-fold variant.
-      mode: "quarter", gen: fillRings, variants: [0, 3], theme: "spectrum", primary: 1,
-      effects: [fx(0x00, 0, 0, 0), fx(0x01, 1, 0, 0), fx(0x02, 0, 1, 15), fx(0x03, 1, 1, 15)],
-      movements: [mv(0x00, 1, 0, 0), mv(0x01, 4, 1, 15), mv(0x02, 2, 1, 15), mv(0x03, 8, 1, 15)],
+    { // 0 — DIAMONDS: uniform full-frame nested diamonds (the yellow/blue lattice).
+      mode: "full", gen: (p, w, h) => fillDiamonds(p, w, h, 64, 3), variants: [0],
+      theme: "tide", primary: 8, effects: EFFECTS(), movements: FLOW(),
     },
-    { // 1 — GRID: XOR lattice, 4-way + H-mirror variant.
-      mode: "quarter", gen: fillXor, variants: [0, 1], theme: "neon", primary: 8,
-      effects: [fx(0x00, 0, 0, 0), fx(0x01, 1, 0, 0), fx(0x03, 2, 1, 15), fx(0x06, 0, 0, 0)],
-      movements: [mv(0x00, 1, 0, 0), mv(0x01, 2, 1, 15), mv(0x02, 4, 1, 8), mv(0x03, 4, 8, 8)],
+    { // 1 — WEAVE: basket weave folded into a 4-way symmetric quilt.
+      mode: "quarter", gen: fillWeave, variants: [0], theme: "candy", primary: 8,
+      effects: EFFECTS(), movements: FLOW(),
     },
-    { // 2 — LATTICE: full-frame tiled diamonds (single layout; WOBBLE is legal here).
-      mode: "full", gen: fillLattice, variants: [0], theme: "tide", primary: 15,
-      effects: [fx(0x00, 0, 0, 0), fx(0x02, 0, 0, 16), fx(0x03, 1, 1, 15), fx(0x05, 4, 8, 0)],
-      movements: [mv(0x00, 1, 0, 0), mv(0x01, 8, 1, 15), mv(0x02, 4, 1, 15), mv(0x03, 2, 1, 15)],
+    { // 2 — TRUCHET: flowing woven curves, warm palette.
+      mode: "quarter", gen: fillTruchet, variants: [0], theme: "sunset", primary: 8,
+      effects: EFFECTS(), movements: FLOW(),
     },
-    { // 3 — SPIRAL: rotating arms, 4-way + V-mirror variant; boots already moving.
-      mode: "quarter", gen: fillSpiral, variants: [0, 2], theme: "ember", primary: 4,
-      effects: [fx(0x00, 0, 0, 0), fx(0x01, 1, 0, 0), fx(0x02, 0, 1, 15), fx(0x03, 1, 1, 15)],
-      movements: [mv(0x01, 4, 1, 15), mv(0x00, 1, 0, 0), mv(0x02, 8, 1, 15), mv(0x03, 4, 1, 15)],
+    { // 3 — CHEVRON: marching zigzags, hi-sat neon.
+      mode: "quarter", gen: fillChevron, variants: [0], theme: "neon", primary: 8,
+      effects: EFFECTS(), movements: FLOW(),
     },
   ];
 
@@ -124,17 +147,13 @@ SVJ.scene = (function () {
   // A blank scene of a given mode (used by the UI when switching modes).
   function makeScene(mode) {
     return makeSceneFrom({
-      mode, gen: mode === "quarter" ? fillRings : fillLattice,
-      variants: [0], theme: "spectrum", primary: 1,
-      effects: defaultEffects(), movements: defaultMovements(),
+      mode, gen: mode === "quarter" ? fillWeave : (p, w, h) => fillDiamonds(p, w, h, 64, 3),
+      variants: [0], theme: "spectrum", primary: 8,
+      effects: EFFECTS(), movements: FLOW(),
     });
   }
-  function defaultEffects() {
-    return [fx(0x00, 0, 0, 0), fx(0x02, 0, 0, 16), fx(0x03, 1, 1, 15), fx(0x06, 0, 0, 0)];
-  }
-  function defaultMovements() {
-    return [mv(0x00, 1, 0, 0), mv(0x01, 4, 1, 15), mv(0x02, 4, 1, 15), mv(0x03, 2, 1, 15)];
-  }
+  function defaultEffects() { return EFFECTS(); }
+  function defaultMovements() { return FLOW(); }
 
   function makeBank() {
     return {

@@ -308,6 +308,8 @@ movement_apply:
   ld (mv_len),a
   xor a
   ld (mv_phase),a
+  ld a,(mv_div)              ; seed the down-counter (else it free-runs from garbage)
+  ld (mv_count),a
   ret
 
 ; Called on ticks where (tick % mv_div == 0): rotate the live range + upload.
@@ -317,19 +319,19 @@ movement_step:
   or a
   ret z                      ; STATIC
   cp 1
-  jr z,+
+  jr z,ms_fwd                ; CYCLE_FWD
   cp 2
-  jr z,mv_back
+  jr z,ms_back               ; CYCLE_BACK
   ; PINGPONG: alternate direction by phase bit0
   ld a,(mv_phase)
   and 1
-  jr z,+
-mv_back:
+  jr z,ms_fwd
+ms_back:
   call rot_back_one
-  jr mv_done
-+:
+  jr ms_done
+ms_fwd:
   call rot_fwd_one
-mv_done:
+ms_done:
   ld a,(mv_phase)
   inc a
   ld (mv_phase),a
