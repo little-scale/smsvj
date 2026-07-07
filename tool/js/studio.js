@@ -8,7 +8,7 @@
 
   // ---- state ----
   const SRC = { tiles: [], cols: 16 };          // source tile sheet (flat, `cols` wide)
-  const ROM = { buf: null, off: 0, phase: 0, palGG: false, format: "raw" };
+  const ROM = { buf: null, off: 0, phase: 0, palGG: false, format: "raw", cols: 16, rows: 16 };
   let pal = greyRamp();                          // 32-entry CRAM (bank1 mirrors bank0)
   let brush = { w: 1, h: 1, tiles: [[blankTile()]] };
   let brushFlip = 0;                             // bit0 = H, bit1 = V
@@ -112,9 +112,9 @@
       const r = SVJ.romdecode.rncUnpack(ROM.buf, rd); bytes = r.bytes;
       setStatus(`RNC ${r.ok ? "✓ CRC ok" : "✗ no/!CRC"} · ${bytes.length} B`, r.ok ? "ok" : "err");
     } else bytes = SVJ.romdecode.decode(ROM.buf, rd, ROM.format);
-    const out = [];
-    for (let i = 0; i < 256; i++) out.push(T.decode(bytes, i * 32));
-    SRC.tiles = out; SRC.cols = 16; renderSrc();
+    const count = ROM.cols * ROM.rows, out = [];
+    for (let i = 0; i < count; i++) out.push(T.decode(bytes, i * 32));
+    SRC.tiles = out; SRC.cols = ROM.cols; renderSrc();
     renderRomPalPreview();
   }
   function loadRom(file) {
@@ -161,6 +161,9 @@
   $("romFile").onchange = (e) => e.target.files[0] && loadRom(e.target.files[0]);
   $("romOff").oninput = (e) => { const v = parseInt(e.target.value, 10); ROM.off = ROM.format === "raw" ? (v & ~31) : v; $("vRomOff").textContent = "0x" + ROM.off.toString(16); romSheetTiles(); };
   $("romPhase").oninput = (e) => { ROM.phase = parseInt(e.target.value, 10) & 255; $("vRomPhase").textContent = ROM.phase; romSheetTiles(); };
+  const clampCR = (v) => Math.max(1, Math.min(64, parseInt(v, 10) || 16));
+  $("romCols").oninput = (e) => { ROM.cols = clampCR(e.target.value); if (ROM.buf) romSheetTiles(); };
+  $("romRows").oninput = (e) => { ROM.rows = clampCR(e.target.value); if (ROM.buf) romSheetTiles(); };
   $("romGrabPal").onclick = () => { pal = decodePalAt(ROM.off + ROM.phase); afterPalChange(); setStatus(`palette ← ROM @ 0x${(ROM.off + ROM.phase).toString(16)}`, "ok"); };
   $("romPalGG").onchange = (e) => { ROM.palGG = e.target.checked; renderRomPalPreview(); };
 

@@ -41,6 +41,11 @@
           <input id="romOff" type="range" min="0" max="0" step="32" value="0" disabled /></label>
         <label class="romofflbl">Phase <b id="vRomPhase" class="mono">0</b>
           <input id="romPhase" type="range" min="0" max="255" step="1" value="0" disabled /></label>
+        <div class="row">
+          <label>Cols <input id="romCols" type="number" min="1" max="64" value="16" /></label>
+          <label>Rows <input id="romRows" type="number" min="1" max="64" value="16" /></label>
+          <span class="hint">reflow the sheet to the game's image width</span>
+        </div>
         <div class="row"><label>Decode <select id="romFmt"></select></label>
           <button id="romFindRnc" disabled>Find RNC ▸</button>
           <label class="chk"><input type="checkbox" id="romPalGG" /> 12-bit (GG)</label></div>
