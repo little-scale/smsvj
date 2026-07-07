@@ -89,3 +89,12 @@ button.on { background: var(--accent2); color: #2a0620; border-color: var(--acce
 .gen input[type=range] { flex: 1; accent-color: var(--accent); }
 .gen select { flex: 1; }
 #tileCount { color: var(--accent); font-size: .8rem; font-weight: 400; }
+
+/* palette generator */
+.palgen .seeds { display: flex; gap: .5rem; margin: .3rem 0 .5rem; }
+.palgen input[type=color] {
+  width: 2.6rem; height: 2.2rem; padding: 0; border: 1px solid var(--edge);
+  border-radius: 5px; background: #0d0f14; cursor: pointer;
+}
+.palgen .row { margin-bottom: .3rem; }
+.palgen button { flex: 1; }

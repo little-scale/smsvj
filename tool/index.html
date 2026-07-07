@@ -77,6 +77,22 @@
       <div class="gamut" id="gamutGrid"></div>
       <div class="primary-row">Primary (freeze target): <span id="primaryVal" class="mono">1</span></div>
 
+      <h3>Palette generator</h3>
+      <div class="palgen">
+        <div class="seeds">
+          <input type="color" id="seed0" value="#ff2244" title="seed 1" />
+          <input type="color" id="seed1" value="#22cc88" title="seed 2" />
+          <input type="color" id="seed2" value="#3355ff" title="seed 3" />
+        </div>
+        <div class="row">
+          <button id="palInterp">Interpolate</button>
+          <button id="palHarm">Harmonise</button>
+          <button id="palOppose">Oppose</button>
+        </div>
+        <p class="hint">Pick up to 3 seeds, then rebuild palette <b id="palGenTarget" class="mono">0</b>
+          (applied to all tilesets — palettes are global). Quantised to the 64-colour SMS gamut.</p>
+      </div>
+
       <h3>Effects (4)</h3>
       <div id="effectsCfg" class="reccfg"></div>
       <h3>Movements (4)</h3>
@@ -88,6 +104,7 @@
   <script src="js/tiles.js"></script>
   <script src="js/fold.js"></script>
   <script src="js/generators.js"></script>
+  <script src="js/palgen.js"></script>
   <script src="js/svjb.js"></script>
   <script src="js/scene.js"></script>
   <script src="js/render.js"></script>

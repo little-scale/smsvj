@@ -451,8 +451,23 @@
   $("genRandom").onclick = randomizeGenerator;
   $("palSel").onchange = (e) => {
     ui.editPal = parseInt(e.target.value, 10);
+    $("palGenTarget").textContent = ui.editPal;
     buildCramGrid(); buildDrawSwatches(); drawAuthoring();
   };
+
+  // Palette generator: build palette editPal from up to 3 seeds. Palettes are
+  // global (identical across tilesets), so write the result to every scene.
+  function applyPalGen(mode) {
+    const seeds = ["seed0", "seed1", "seed2"].map((id) => C.fromHex($(id).value));
+    const backdrop = scene().palettes[ui.editPal][0];
+    const pal = SVJ.palgen.build(mode, seeds, backdrop);
+    for (const s of bank.scenes) s.palettes[ui.editPal] = Uint8Array.from(pal);
+    buildCramGrid(); buildDrawSwatches(); drawAuthoring();
+    setStatus(`palette ${ui.editPal}: ${mode}`, "ok");
+  }
+  $("palInterp").onclick = () => applyPalGen("interpolate");
+  $("palHarm").onclick = () => applyPalGen("harmonize");
+  $("palOppose").onclick = () => applyPalGen("opposition");
   $("freeze").onclick = () => {           // colour freeze = pause-button toggle
     ui.freeze = !ui.freeze;
     $("freeze").classList.toggle("on", ui.freeze);
