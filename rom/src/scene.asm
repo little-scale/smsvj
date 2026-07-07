@@ -413,6 +413,9 @@ ma_phdone:
 ; Called on ticks where (tick % mv_div == 0): rotate the live range + upload.
 ; 1=CYCLE_FWD, 2=CYCLE_BACK, 3/4=wobble (rock 8 fwd / 8 back; type 4 anti-phase).
 movement_step:
+  ld a,(freeze)
+  or a
+  ret nz                     ; colour freeze: hold CRAM (skip the rotation)
   ld a,(mv_type)
   or a
   ret z                      ; STATIC

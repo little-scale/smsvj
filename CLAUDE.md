@@ -56,7 +56,7 @@ Each button owns a theme — B1 = effect, B2 = look, B1+B2 = source:
 | B1+B2 + ←/→ | **tileset** (of 16) — palette stays | beat |
 | B1+B2 + ↑/↓ | **palette** (of 8) — tileset stays | tick |
 | B2 tap (alone) | overlay show/hide | instant (on release) |
-| B1+B2 (no d-pad) | freeze to primary (flat, momentary) | instant |
+| **Pause button** (NMI) | colour freeze — hold the current colours (toggle) | instant |
 
 **Palette and tileset are independent** (no "bank"): the B1+B2 combo mixes them — ←/→
 swaps the tileset keeping the palette, ↑/↓ swaps the palette keeping the tileset. There

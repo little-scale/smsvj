@@ -4,7 +4,7 @@
 ;   B1     : L/R = effect SPEED (0-15, clamped)  U/D = effect DIAL (of 9)
 ;   B2     :                                U/D = movement (of 7)
 ;   B1+B2  : L/R = tileset (of 16)          U/D = palette (of 8)
-;   B1+B2 (no d-pad) : freeze (momentary)
+;   PAUSE button (NMI) : colour freeze (toggle) -- see nmi handler
 ;   B2 tap alone (on release) : overlay toggle
 ; ---------------------------------------------------------------------------
 .SECTION "input" FREE
@@ -18,18 +18,6 @@ read_input:
   cpl
   and c
   ld d,a                     ; D = newly-pressed edges
-
-  ; --- freeze release: freeze needs B1 AND B2 still held ---
-  ld a,(freeze)
-  or a
-  jr z,ri_decode
-  ld a,c
-  and PAD_B1|PAD_B2
-  cp PAD_B1|PAD_B2
-  jr z,ri_decode             ; both still held: stay frozen
-  xor a
-  ld (freeze),a
-  call cram_upload_live      ; restore the live palette
 
 ri_decode:
   ld a,c
@@ -58,21 +46,10 @@ bb_u:
   call set_b2mod
 bb_d:
   bit 1,d                    ; down -> palette -1
-  jr z,bb_frz
+  jr z,ri_store
   ld hl,pend_pal
   call nudge_p8_down
   call set_b2mod
-bb_frz:
-  ; freeze only while B1+B2 held with NO d-pad currently held
-  ld a,c
-  and PAD_UP|PAD_DOWN|PAD_LEFT|PAD_RIGHT
-  jp nz,ri_store
-  ld a,(freeze)
-  or a
-  jp nz,ri_store             ; already frozen
-  ld a,1
-  ld (freeze),a
-  call freeze_flatten
   jp ri_store
 
 ri_b1only:

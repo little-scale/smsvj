@@ -235,9 +235,12 @@
     let layoutIdx = 0;
     if (fx.type === 0x01) layoutIdx = Math.min(fx.p0 | 0, b.layouts.length - 1);
 
+    // colour freeze: hold the movement phase at the moment it engaged
+    const livePhase = clk.movePhase(mv.division);
+    if (!ui.freeze) ui.freezePhase = livePhase;
     const eff = R.effectivePalette(sc.palettes[palIdx], {
-      movement: mv, movePhase: clk.movePhase(mv.division),
-      effect: fx, freeze: ui.freeze, primary: sc.primary[palIdx],
+      movement: mv, movePhase: ui.freeze ? ui.freezePhase : livePhase,
+      effect: fx, primary: sc.primary[palIdx],
     });
     const wobble = fx.type === 0x05 ? { amp: fx.p0 | 0, freq: (fx.p1 | 0) || 1, phase: ui.wobblePhase } : null;
 
@@ -389,8 +392,10 @@
     ui.editPal = parseInt(e.target.value, 10);
     buildCramGrid(); buildDrawSwatches(); drawAuthoring();
   };
-  $("freeze").onmousedown = () => { ui.freeze = true; };
-  window.addEventListener("mouseup", () => { ui.freeze = false; });
+  $("freeze").onclick = () => {           // colour freeze = pause-button toggle
+    ui.freeze = !ui.freeze;
+    $("freeze").classList.toggle("on", ui.freeze);
+  };
 
   function setSpeed(v) { ui.moshSpeed = Math.max(0, Math.min(15, v)); $("spdVal").textContent = ui.moshSpeed; }
   $("spdUp").onclick = () => setSpeed(ui.moshSpeed + 1);

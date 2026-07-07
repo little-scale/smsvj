@@ -59,8 +59,7 @@ SVJ.render = (function () {
         // 0x01 LAYOUT handled by caller (layout selection); 0x05 WOBBLE = geometry.
       }
     }
-    if (opts.freeze) pal = freezeAll(pal, base[opts.primary] || 0);
-    return { pal, blank };
+    return { pal, blank };  // colour freeze = hold movePhase (see app), not flatten
   }
 
   // WOBBLE: per-line horizontal scroll, sampled from the base row and wrapped.

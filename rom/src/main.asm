@@ -28,7 +28,12 @@
 
 .ORG $0066
 .SECTION "nmi" FORCE
-  retn                        ; pause button: ignored
+  push af
+  ld a,(freeze)
+  xor 1
+  ld (freeze),a               ; pause button toggles the colour freeze
+  pop af
+  retn
 .ENDS
 
 ; ---- boot + main loop -----------------------------------------------------
