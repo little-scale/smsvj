@@ -63,7 +63,7 @@ info.scenes.forEach((s, i) => {
   const vram = s.tile_count * 32 + s.layout_count * 2048;
   ok(s.tile_count <= 255 && vram <= 16384,
     `scene ${i}: ${s.tile_count} tiles, ${s.layout_count} layout(s), ${vram} B VRAM <= 16384`);
-  ok(s.tile_count <= 48, `scene ${i}: tile budget respected (${s.tile_count} <= 48)`);
+  ok(s.tile_count <= 16, `scene ${i}: tile budget respected (${s.tile_count} <= 16)`);
 });
 
 // 7. WOBBLE: per-line hscroll shifts a row's pixels and wraps.

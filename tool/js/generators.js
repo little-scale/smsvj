@@ -16,7 +16,7 @@ SVJ.generators = (function () {
     angular:   (x, y) => (Math.atan2(y, x) / (2 * Math.PI) + 0.5) * 64, // spokes/pie
   };
   const METRIC_KEYS = Object.keys(METRICS);
-  const STYLES = ["metric", "weave", "truchet", "chevron", "wave", "grid"];
+  const STYLES = ["metric", "weave", "truchet", "chevron", "wave", "grid", "plaid", "stripe", "brick"];
 
   // Cell styles ------------------------------------------------------------
   function weaveIdx(x, y, cell) {
@@ -34,6 +34,25 @@ SVJ.generators = (function () {
     const per = p.period || 24, h = per / 2;
     const gx = Math.abs((x % per) - h), gy = Math.abs((y % per) - h);
     return idx(Math.min(gx, gy) / (p.thickness || 2));
+  }
+  // Plaid / tartan: warp + weft bands added where they cross. Tile-periodic.
+  function plaidIdx(x, y, p) {
+    const per = p.period || 24, th = p.thickness || 3;
+    return idx(Math.floor((x % per) / th) + Math.floor((y % per) / th));
+  }
+  // Directional stripes (spin = 0 horiz, 1 vert, 2 diag, 3 anti-diag).
+  function stripeIdx(x, y, p) {
+    const per = p.period || 16, th = p.thickness || 2, dir = p.spin | 0;
+    const pos = dir === 0 ? y : dir === 1 ? x : dir === 2 ? x + y : x - y + 512;
+    return idx(Math.floor((((pos % per) + per) % per) / th));
+  }
+  // Offset brick wall with mortar lines. period = brick width, cell = height.
+  function brickIdx(x, y, p) {
+    const bw = p.period || 32, bh = p.cell || 16, th = p.thickness || 2;
+    const off = (Math.floor(y / bh) & 1) * (bw >> 1);
+    const cx = (((x + off) % bw) + bw) % bw, cy = y % bh;
+    const ex = Math.min(cx, bw - 1 - cx), ey = Math.min(cy, bh - 1 - cy);
+    return idx(Math.min(ex, ey) / th);
   }
   function truchetIdx(x, y, cell) {
     const cx = x % cell, cy = y % cell;
@@ -67,6 +86,9 @@ SVJ.generators = (function () {
         if (p.style === "chevron") { row[x] = chevronIdx(x, y, p.cell); continue; }
         if (p.style === "wave") { row[x] = waveIdx(x, y, p); continue; }
         if (p.style === "grid") { row[x] = gridIdx(x, y, p); continue; }
+        if (p.style === "plaid") { row[x] = plaidIdx(x, y, p); continue; }
+        if (p.style === "stripe") { row[x] = stripeIdx(x, y, p); continue; }
+        if (p.style === "brick") { row[x] = brickIdx(x, y, p); continue; }
         // metric style: optional lattice fold, then rotate coords, then measure.
         let px_ = x, py_ = y;
         if (p.period > 0) { px_ = (x % p.period) - p.period / 2; py_ = (y % p.period) - p.period / 2; }

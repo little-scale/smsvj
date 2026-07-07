@@ -96,26 +96,27 @@ SVJ.scene = (function () {
     ramp(THEMES.candy), ramp(THEMES.forest), ramp(THEMES.sunset), ramp(THEMES.neon),
   ];
 
-  // 16 fresh tilesets — a distinct geometric pattern each.
+  // 16 minimal tilesets — all tile-periodic (period a multiple of 8, matched in
+  // both axes) so each dedups to <=16 unique 8x8 tiles.
   const sc = (mode, gen) => ({ mode, generator: G(gen), variants: [0], primary: 8,
-    effects: EFFECTS(), movements: FLOW() });
+    tileBudget: 16, effects: EFFECTS(), movements: FLOW() });
   const DEFS = [
-    sc("full",    { style: "wave", period: 40, spin: 1.2 }),                                  // sine interference
-    sc("full",    { style: "grid", period: 24, thickness: 2 }),                               // mesh lattice
-    sc("quarter", { style: "metric", metric: "euclidean", period: 0, thickness: 4 }),         // ring mandala
-    sc("full",    { style: "metric", metric: "taxicab", period: 40, rotation: 45, thickness: 3 }), // argyle
-    sc("quarter", { style: "metric", metric: "angular", period: 0, thickness: 3 }),           // pinwheel
-    sc("quarter", { style: "metric", metric: "euclidean", period: 0, spin: 90, thickness: 5 }), // spiral
-    sc("full",    { style: "metric", metric: "chebyshev", period: 32, rotation: 20, thickness: 2 }), // tilted squares
-    sc("quarter", { style: "truchet", cell: 20 }),                                            // woven curves
-    sc("full",    { style: "wave", period: 24, spin: 2.4 }),                                  // fine interference
-    sc("full",    { style: "grid", period: 16, thickness: 1 }),                               // fine mesh
-    sc("quarter", { style: "chevron", cell: 18 }),                                            // chevrons
-    sc("full",    { style: "metric", metric: "taxicab", period: 24, thickness: 2 }),          // small argyle
-    sc("quarter", { style: "metric", metric: "angular", period: 0, thickness: 2, spin: 12 }), // pinwheel spiral
-    sc("quarter", { style: "metric", metric: "euclidean", period: 0, spin: 140, thickness: 4 }), // tight spiral
-    sc("quarter", { style: "metric", metric: "chebyshev", period: 0, thickness: 5 }),         // square mandala
-    sc("quarter", { style: "weave", cell: 16 }),                                              // basket weave
+    sc("full",    { style: "metric", metric: "taxicab", period: 16, thickness: 2 }),               // small diamonds
+    sc("full",    { style: "metric", metric: "taxicab", period: 24, thickness: 3 }),               // diamonds
+    sc("full",    { style: "metric", metric: "taxicab", period: 32, rotation: 45, thickness: 3 }), // argyle
+    sc("full",    { style: "metric", metric: "chebyshev", period: 16, thickness: 2 }),             // small squares
+    sc("full",    { style: "metric", metric: "chebyshev", period: 24, thickness: 3 }),             // nested squares
+    sc("full",    { style: "metric", metric: "euclidean", period: 16, thickness: 2 }),             // dot lattice
+    sc("full",    { style: "metric", metric: "euclidean", period: 24, thickness: 3 }),             // ring lattice
+    sc("full",    { style: "grid", period: 16, thickness: 2 }),                                    // mesh
+    sc("full",    { style: "grid", period: 24, thickness: 4 }),                                    // wide mesh
+    sc("quarter", { style: "weave", cell: 16 }),                                                   // basket weave
+    sc("quarter", { style: "weave", cell: 24 }),                                                   // wide weave
+    sc("full",    { style: "plaid", period: 16, thickness: 2 }),                                   // fine tartan
+    sc("full",    { style: "plaid", period: 24, thickness: 3 }),                                   // tartan
+    sc("full",    { style: "stripe", period: 16, thickness: 2, spin: 2 }),                         // diagonal bands
+    sc("full",    { style: "stripe", period: 24, thickness: 3, spin: 3 }),                         // anti-diagonal
+    sc("full",    { style: "brick", period: 32, cell: 16, thickness: 2 }),                         // brick wall
   ];
 
   function makeSceneFrom(def) {
