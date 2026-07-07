@@ -63,5 +63,17 @@ info.scenes.forEach((s, i) => {
     `scene ${i}: ${s.tile_count} tiles, ${s.layout_count} layout(s), ${vram} B VRAM <= 16384`);
 });
 
+// 7. WOBBLE: per-line hscroll shifts a row's pixels and wraps.
+{
+  const W = SVJ.render.W, H = SVJ.render.H;
+  const img = { data: new Uint8ClampedArray(W * H * 4) };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) img.data[(y * W + x) * 4] = x & 255;
+  // phase = PI/2 -> shift at row 0 = amp*sin(PI/2) = amp.
+  SVJ.render.applyWobble(img, 10, 1, Math.PI / 2);
+  const redAt = (x) => img.data[(0 * W + x) * 4];
+  ok(redAt(20) === (20 - 10), "wobble: row 0 shifted right by amp (10)");
+  ok(redAt(5) === (((5 - 10) % 256) + 256) % 256, "wobble: shift wraps at row edge");
+}
+
 console.log(fails === 0 ? "\nALL PASS" : `\n${fails} FAILURE(S)`);
 process.exit(fails ? 1 : 0);

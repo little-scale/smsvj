@@ -16,6 +16,7 @@
     freeze: false,
     lastBeat: 0,
     lastTs: 0,
+    wobblePhase: 0,
   };
 
   const $ = (id) => document.getElementById(id);
@@ -230,7 +231,8 @@
       movement: mv, movePhase: clk.movePhase(mv.division),
       effect: fx, freeze: ui.freeze, primary: sc.primary[palIdx],
     });
-    R.renderLayout(pvImg, b.layouts[layoutIdx], b.tiles, eff.pal, eff.blank);
+    const wobble = fx.type === 0x05 ? { amp: fx.p0 | 0, freq: (fx.p1 | 0) || 1, phase: ui.wobblePhase } : null;
+    R.renderLayout(pvImg, b.layouts[layoutIdx], b.tiles, eff.pal, eff.blank, wobble);
     pvCtx.putImageData(pvImg, 0, 0);
 
     const t = clk.state.tick;
@@ -239,6 +241,7 @@
   }
 
   function frame(ts) {
+    ui.wobblePhase = (ts / 1000) * 4; // ~0.64 Hz base wobble, animates continuously
     if (ui.playing) {
       const dtMs = ui.lastTs ? ts - ui.lastTs : 16;
       const dtFrames = (dtMs / 1000) * clk.state.fps;

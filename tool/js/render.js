@@ -63,8 +63,28 @@ SVJ.render = (function () {
     return { pal, blank };
   }
 
-  // Draw a 32x24 name table into a 256x192 ImageData.
-  function renderLayout(img, layout, tiles, pal, blank) {
+  // WOBBLE: per-line horizontal scroll, sampled from the base row and wrapped.
+  // freq = full sine cycles down the screen; amp = pixel amplitude; phase animates.
+  const rowBuf = new Uint8ClampedArray(W * 4);
+  function applyWobble(img, amp, freq, phase) {
+    if (!amp) return;
+    const data = img.data;
+    for (let y = 0; y < H; y++) {
+      const shift = Math.round(amp * Math.sin((2 * Math.PI * freq * y) / H + phase));
+      if (!shift) continue;
+      const rowStart = y * W * 4;
+      rowBuf.set(data.subarray(rowStart, rowStart + W * 4));
+      for (let x = 0; x < W; x++) {
+        const src = (((x - shift) % W) + W) % W;
+        const d = rowStart + x * 4, s = src * 4;
+        data[d] = rowBuf[s]; data[d + 1] = rowBuf[s + 1]; data[d + 2] = rowBuf[s + 2]; data[d + 3] = 255;
+      }
+    }
+  }
+
+  // Draw a 32x24 name table into a 256x192 ImageData. `wobble` (optional) =
+  // {amp, freq, phase} applies a per-line hscroll after the base draw.
+  function renderLayout(img, layout, tiles, pal, blank, wobble) {
     const data = img.data;
     if (blank != null) {
       const c = SVJ.color.toRGB(pal[blank] || 0);
@@ -88,7 +108,8 @@ SVJ.render = (function () {
         }
       }
     }
+    if (wobble) applyWobble(img, wobble.amp, wobble.freq, wobble.phase);
   }
 
-  return { W, H, rotateRange, invertRange, freezeAll, movementAmount, effectivePalette, renderLayout };
+  return { W, H, rotateRange, invertRange, freezeAll, movementAmount, effectivePalette, renderLayout, applyWobble };
 })();
