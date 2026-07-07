@@ -396,14 +396,21 @@ movement_apply:
   inc hl
   ld a,(hl)
   ld (mv_len),a
+  ; init phase (wobble B = type 4 starts anti-phase, 8 steps offset)
   xor a
   ld (mv_phase),a
+  ld a,(mv_type)
+  cp 4
+  jr nz,ma_phdone
+  ld a,8
+  ld (mv_phase),a
+ma_phdone:
   ld a,(mv_div)              ; seed the down-counter (else it free-runs from garbage)
   ld (mv_count),a
   ret
 
 ; Called on ticks where (tick % mv_div == 0): rotate the live range + upload.
-; Direction: CYCLE_FWD(1) fwd, CYCLE_BACK(2) back, PINGPONG(3) triangle.
+; 1=CYCLE_FWD, 2=CYCLE_BACK, 3/4=wobble (rock 8 fwd / 8 back; type 4 anti-phase).
 movement_step:
   ld a,(mv_type)
   or a
@@ -412,9 +419,9 @@ movement_step:
   jr z,ms_fwd                ; CYCLE_FWD
   cp 2
   jr z,ms_back               ; CYCLE_BACK
-  ; PINGPONG: alternate direction by phase bit0
+  ; wobble (types 3,4): rock over 8 steps -> phase bit3 picks direction
   ld a,(mv_phase)
-  and 1
+  and 8
   jr z,ms_fwd
 ms_back:
   call rot_back_one

@@ -95,9 +95,10 @@ unaligned bank for tools that address it linearly.
 | 14 | 2 | `reserved` | 0 |
 | 16 | 4 | `primary[4]` | one primary CRAM index per palette (for freeze); see §7 |
 
-The 16-byte header is immediately followed by the 4-byte `primary[4]` array, so the
-fixed prefix of every scene is 20 bytes; the five `off_*` fields are scene-relative
-offsets to the sections, which the tool may lay out in any order after this prefix.
+The 16-byte header is immediately followed by the `primary[]` array (one entry per
+palette). The `off_*` fields are scene-relative offsets to the sections — the runtime
+reads them, so section counts are flexible. **Current builds use `primary[8]` (24-byte
+prefix), 8 palettes, 9 effects, and 7 movements.**
 
 ---
 
@@ -168,7 +169,8 @@ the fold differs.
 
 ## 7. PALETTES section
 
-4 palettes, each **32 bytes** = the full CRAM (2 banks of 16). One colour per byte,
+**8 palettes** (global — the same 8 in every tileset, so palette and tileset are
+independent axes), each **32 bytes** = the full CRAM (2 banks of 16). One colour per byte,
 6-bit SMS colour `0b00BBGGRR` (each channel 0–3; 64 possible colours).
 
 The per-palette **primary index** (from `primary[4]` in the scene header) points at the
@@ -241,14 +243,16 @@ symmetry); the tool should grey it out for folded layouts.
 
 ## 9. MOVEMENTS section
 
-4 records, **4 bytes** each: `type, division, range_start, range_len`.
+**7 records** (the movement axis), **4 bytes** each: `type, division, range_start,
+range_len` — slow/fast × up/down, two anti-phase wobbles, and none.
 
 | type | name |
 |----|----|
 | 0x00 | STATIC (no motion) |
 | 0x01 | CYCLE_FWD |
 | 0x02 | CYCLE_BACK |
-| 0x03 | PINGPONG |
+| 0x03 | WOBBLE_A (rock ±8) |
+| 0x04 | WOBBLE_B (anti-phase) |
 
 - `division` — motion step interval in **ticks** (1 = every 1/16, 4 = every beat, 8 =
   every half, …). Tempo-relative, so motion stays locked whether the clock is INT, IN,

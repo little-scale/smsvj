@@ -25,7 +25,8 @@
   const scene = () => bank.scenes[ui.curScene];
   const EFFECT_NAMES = ["NONE", "LAYOUT", "INVERT", "ROTATE", "FREEZE_LATCH", "WOBBLE", "BLANK",
     "MELT", "SCRAMBLE", "CHURN", "SMEAR", "MORPH", "XOR", "STAMP"];
-  const MOVE_NAMES = ["STATIC", "CYCLE_FWD", "CYCLE_BACK", "PINGPONG"];
+  const MOVE_NAMES = ["STATIC", "CYCLE_FWD", "CYCLE_BACK", "WOBBLE_A", "WOBBLE_B"];
+  const SPEED_RUNS = [1, 2, 3, 5, 8, 12, 18, 24]; // matches the ROM speed table
 
   // ---- baking ----
   function rebake(i) {
@@ -183,7 +184,7 @@
   function buildAxes() {
     document.querySelectorAll(".axbtns").forEach((host) => {
       const axis = host.dataset.axis;
-      const n = axis === "effect" ? 9 : axis === "scene" ? 8 : 4;
+      const n = { effect: 9, scene: 16, palette: 8, movement: 7 }[axis] || 4;
       host.innerHTML = "";
       for (let i = 0; i < n; i++) {
         const b = document.createElement("b");
@@ -243,7 +244,7 @@
     // name-table cells. Copies rebuild clean when off or the scene changes.
     // Corruption amount per frame = speed multiplier, with an extra beat kick.
     const beatNow = Math.floor(clk.state.tick / CLK.BEAT);
-    const kick = (beatNow !== ui.lastRenderBeat ? 2 : 1) * (1 << ui.moshSpeed);
+    const kick = (beatNow !== ui.lastRenderBeat ? 2 : 1) * SPEED_RUNS[ui.moshSpeed];
     ui.lastRenderBeat = beatNow;
 
     let tilesForRender = b.tiles;
@@ -385,7 +386,7 @@
   $("freeze").onmousedown = () => { ui.freeze = true; };
   window.addEventListener("mouseup", () => { ui.freeze = false; });
 
-  function setSpeed(v) { ui.moshSpeed = Math.max(0, Math.min(3, v)); $("spdVal").textContent = ui.moshSpeed; }
+  function setSpeed(v) { ui.moshSpeed = Math.max(0, Math.min(7, v)); $("spdVal").textContent = ui.moshSpeed; }
   $("spdUp").onclick = () => setSpeed(ui.moshSpeed + 1);
   $("spdDn").onclick = () => setSpeed(ui.moshSpeed - 1);
 

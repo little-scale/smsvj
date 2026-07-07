@@ -56,21 +56,22 @@ main_loop:
   ld (frame_ready),a
   call read_input             ; controller 1 -> pending nudges (capture-instant)
   call clock_update           ; advance accumulator -> ticks, latch on boundaries
-  ; per-frame corruption, run 1<<mosh_speed times (B1+left/right sets speed)
+  ; per-frame corruption, run speed_runs[mosh_speed] times (B1+left/right = speed)
   ld a,(mosh_speed)
-  ld b,1
-  or a
-  jr z,ml_run
-ml_shift:
-  sla b
-  dec a
-  jr nz,ml_shift
+  ld e,a
+  ld d,0
+  ld hl,speed_runs
+  add hl,de
+  ld b,(hl)                   ; number of mosh_step passes this frame
 ml_run:
   push bc
   call mosh_step
   pop bc
   djnz ml_run
   jp main_loop
+
+speed_runs:
+.db 1, 2, 3, 5, 8, 12, 18, 24
 .ENDS
 
 .INCLUDE "vdp.asm"

@@ -32,10 +32,10 @@ SVJ.render = (function () {
     switch (type) {
       case 0x01: return phase;          // CYCLE_FWD
       case 0x02: return -phase;         // CYCLE_BACK
-      case 0x03: {                      // PINGPONG (triangle wave)
-        const period = 2 * 15;
-        const p = ((phase % period) + period) % period;
-        return p < 15 ? p : period - p;
+      case 0x03:                        // WOBBLE_A  (rock 0..8..0)
+      case 0x04: {                      // WOBBLE_B  (anti-phase)
+        const p = (((phase + (type === 0x04 ? 8 : 0)) % 16) + 16) % 16;
+        return p < 8 ? p : 16 - p;
       }
       default: return 0;                // STATIC
     }

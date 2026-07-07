@@ -25,17 +25,15 @@ SVJ.clock = (function () {
       return (state.fps * 60) / state.bpm / BEAT;
     }
 
-    // Capture-instant: nudge an axis's pending index now (opposite press cancels).
-    // effect is a clamped 9-way dial (0..8); scene wraps mod 8; others mod 4.
+    // Axis sizes: effect = clamped 9-way dial; scene 16; palette 8; movement 7.
+    const N = { scene: 16, palette: 8, movement: 7, effect: 9 };
     function nudge(axis, dir) {
       if (axis === "effect") state.pend.effect = Math.max(0, Math.min(8, state.pend.effect + dir));
-      else if (axis === "scene") state.pend.scene = (state.pend.scene + dir + 8) & 7;
-      else state.pend[axis] = (state.pend[axis] + dir + 4) & 3;
+      else state.pend[axis] = ((state.pend[axis] + dir) % N[axis] + N[axis]) % N[axis];
     }
     function set(axis, value) {
-      if (axis === "effect") state.pend.effect = Math.max(0, Math.min(8, value));
-      else if (axis === "scene") state.pend.scene = value & 7;
-      else state.pend[axis] = value & 3;
+      state.pend[axis] = axis === "effect" ? Math.max(0, Math.min(8, value))
+                                           : ((value % N[axis]) + N[axis]) % N[axis];
     }
 
     function latchBeatAxes() {

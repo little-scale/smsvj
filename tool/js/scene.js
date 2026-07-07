@@ -73,8 +73,17 @@ SVJ.scene = (function () {
     fx(0x0a, 12, 32, 0),    // 7 SMEAR-V
     fx(0x09, 8, 6, 0),      // 8 CHURN    (boil)            up end
   ];
-  // slot 0 = CYCLE_BACK so radial scenes flow OUTWARD by default (fwd read as inward).
-  const FLOW = () => [mv(0x02, 1, 1, 15), mv(0x01, 2, 1, 15), mv(0x03, 1, 1, 15), mv(0x00, 1, 0, 0)];
+  // Movement axis of 7. "up" = CYCLE_BACK (radials flow outward), "down" = CYCLE_FWD.
+  // Types: 1=fwd, 2=back, 3=wobble A (pingpong), 4=wobble B (pingpong, anti-phase).
+  const FLOW = () => [
+    mv(0x02, 4, 1, 15),   // 0 slow up (outward)
+    mv(0x01, 4, 1, 15),   // 1 slow down
+    mv(0x02, 1, 1, 15),   // 2 fast up
+    mv(0x01, 1, 1, 15),   // 3 fast down
+    mv(0x03, 1, 1, 15),   // 4 wobble A
+    mv(0x04, 1, 1, 15),   // 5 wobble B
+    mv(0x00, 1, 0, 0),    // 6 none
+  ];
 
   const G = (o) => Object.assign(SVJ.generators.defaults(), o);
 
@@ -83,13 +92,11 @@ SVJ.scene = (function () {
   // keeps the palette, switching palette keeps the tileset. (B1+B2: up/down =
   // palette of 4, left/right = tileset of 8.)
   const GLOBAL_PALETTES = [
-    ramp(THEMES.spectrum),
-    ramp(THEMES.ember),
-    ramp(THEMES.tide),
-    ramp(THEMES.uv),
+    ramp(THEMES.spectrum), ramp(THEMES.ember), ramp(THEMES.tide), ramp(THEMES.uv),
+    ramp(THEMES.candy), ramp(THEMES.forest), ramp(THEMES.sunset), ramp(THEMES.neon),
   ];
 
-  // 8 fresh tilesets — a distinct geometric pattern each.
+  // 16 fresh tilesets — a distinct geometric pattern each.
   const sc = (mode, gen) => ({ mode, generator: G(gen), variants: [0], primary: 8,
     effects: EFFECTS(), movements: FLOW() });
   const DEFS = [
@@ -101,6 +108,14 @@ SVJ.scene = (function () {
     sc("quarter", { style: "metric", metric: "euclidean", period: 0, spin: 90, thickness: 5 }), // spiral
     sc("full",    { style: "metric", metric: "chebyshev", period: 32, rotation: 20, thickness: 2 }), // tilted squares
     sc("quarter", { style: "truchet", cell: 20 }),                                            // woven curves
+    sc("full",    { style: "wave", period: 24, spin: 2.4 }),                                  // fine interference
+    sc("full",    { style: "grid", period: 16, thickness: 1 }),                               // fine mesh
+    sc("quarter", { style: "chevron", cell: 18 }),                                            // chevrons
+    sc("full",    { style: "metric", metric: "taxicab", period: 24, thickness: 2 }),          // small argyle
+    sc("quarter", { style: "metric", metric: "angular", period: 0, thickness: 2, spin: 12 }), // pinwheel spiral
+    sc("quarter", { style: "metric", metric: "euclidean", period: 0, spin: 140, thickness: 4 }), // tight spiral
+    sc("quarter", { style: "metric", metric: "chebyshev", period: 0, thickness: 5 }),         // square mandala
+    sc("quarter", { style: "weave", cell: 16 }),                                              // basket weave
   ];
 
   function makeSceneFrom(def) {
@@ -114,7 +129,7 @@ SVJ.scene = (function () {
       bank: 0,
       priority: 0,
       palettes: GLOBAL_PALETTES.map((p) => Uint8Array.from(p)), // identical -> decoupled
-      primary: [def.primary, def.primary, def.primary, def.primary],
+      primary: new Array(8).fill(def.primary),
       effects: def.effects.map((e) => ({ ...e })),
       movements: def.movements.map((m) => ({ ...m })),
     };

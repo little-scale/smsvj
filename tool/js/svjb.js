@@ -28,11 +28,15 @@ SVJ.svjb = (function () {
     });
   }
 
-  const EFFECT_COUNT = 9;   // NONE centre + 4 up (glitch) + 4 down (colour)
+  const EFFECT_COUNT = 9;     // NONE centre + 4 up (glitch) + 4 down (glitch)
+  const PALETTE_COUNT = 8;    // global palettes (B1+B2 up/down of 8)
+  const MOVEMENT_COUNT = 7;   // slow/fast x up/down, 2 wobbles, none
+  const PREFIX = 16 + PALETTE_COUNT; // scene header + primary[PALETTE_COUNT]
 
   // Byte size of a serialized scene (prefix + sections).
   function sceneSize(b) {
-    return 20 + b.tiles.length * 32 + b.layouts.length * LAYOUT_BYTES + 4 * 32 + EFFECT_COUNT * 4 + 4 * 4;
+    return PREFIX + b.tiles.length * 32 + b.layouts.length * LAYOUT_BYTES +
+      PALETTE_COUNT * 32 + EFFECT_COUNT * 4 + MOVEMENT_COUNT * 4;
   }
 
   // Serialize a whole bank model -> Uint8Array. Throws on constraint violation.
@@ -79,13 +83,13 @@ SVJ.svjb = (function () {
 
       const tileCount = b.tiles.length;
       const layoutCount = b.layouts.length;
-      const off_tiles = 20;
+      const off_tiles = PREFIX;
       const off_layouts = off_tiles + tileCount * 32;
       const off_palettes = off_layouts + layoutCount * LAYOUT_BYTES;
-      const off_effects = off_palettes + 4 * 32;
+      const off_effects = off_palettes + PALETTE_COUNT * 32;
       const off_movements = off_effects + EFFECT_COUNT * 4;
 
-      // Scene header (16 bytes) + primary[4]
+      // Scene header (16 bytes) + primary[PALETTE_COUNT]
       w.u8(tileCount);
       w.u8(layoutCount);
       w.u8(0); // flags (no RLE in v1)
@@ -96,7 +100,7 @@ SVJ.svjb = (function () {
       w.u16(off_effects);
       w.u16(off_movements);
       w.u16(0); // reserved
-      for (let p = 0; p < 4; p++) w.u8((scene.primary[p] || 0) & 31); // primary[4]
+      for (let p = 0; p < PALETTE_COUNT; p++) w.u8((scene.primary[p] || 0) & 31);
 
       // TILES
       for (const t of b.tiles) w.raw(T.encode(t));
@@ -104,9 +108,9 @@ SVJ.svjb = (function () {
       for (const lay of b.layouts) {
         for (let i = 0; i < lay.length; i++) w.u16(lay[i]);
       }
-      // PALETTES (4 x 32)
-      for (let p = 0; p < 4; p++) {
-        const pal = scene.palettes[p];
+      // PALETTES (PALETTE_COUNT x 32)
+      for (let p = 0; p < PALETTE_COUNT; p++) {
+        const pal = scene.palettes[p] || scene.palettes[0];
         for (let i = 0; i < 32; i++) w.u8(pal[i] & 0x3f);
       }
       // EFFECTS (EFFECT_COUNT x {type,p0,p1,p2})
@@ -114,9 +118,9 @@ SVJ.svjb = (function () {
         const fx = scene.effects[e] || { type: 0, p0: 0, p1: 0, p2: 0 };
         w.u8(fx.type); w.u8(fx.p0 || 0); w.u8(fx.p1 || 0); w.u8(fx.p2 || 0);
       }
-      // MOVEMENTS (4 x {type,division,range_start,range_len})
-      for (let m = 0; m < 4; m++) {
-        const mv = scene.movements[m];
+      // MOVEMENTS (MOVEMENT_COUNT x {type,division,range_start,range_len})
+      for (let m = 0; m < MOVEMENT_COUNT; m++) {
+        const mv = scene.movements[m] || { type: 0, division: 1, range_start: 0, range_len: 0 };
         w.u8(mv.type); w.u8(mv.division || 1); w.u8(mv.range_start || 0); w.u8(mv.range_len || 0);
       }
     });
@@ -150,12 +154,13 @@ SVJ.svjb = (function () {
       const off_effects = dv.getUint16(base + 10, true);
       const off_movements = dv.getUint16(base + 12, true);
       // Consistency: sections in order with expected sizes.
+      const body = PREFIX + tile_count * 32 + layout_count * LAYOUT_BYTES;
       const expect = {
-        off_tiles: 20,
-        off_layouts: 20 + tile_count * 32,
-        off_palettes: 20 + tile_count * 32 + layout_count * LAYOUT_BYTES,
-        off_effects: 20 + tile_count * 32 + layout_count * LAYOUT_BYTES + 128,
-        off_movements: 20 + tile_count * 32 + layout_count * LAYOUT_BYTES + 128 + EFFECT_COUNT * 4,
+        off_tiles: PREFIX,
+        off_layouts: PREFIX + tile_count * 32,
+        off_palettes: body,
+        off_effects: body + PALETTE_COUNT * 32,
+        off_movements: body + PALETTE_COUNT * 32 + EFFECT_COUNT * 4,
       };
       for (const [k, v] of Object.entries(expect)) {
         const got = { off_tiles, off_layouts, off_palettes, off_effects, off_movements }[k];
