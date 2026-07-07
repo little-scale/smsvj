@@ -64,7 +64,7 @@ BANKS 6
 .DEFINE SC_OFF_PALETTES 8
 .DEFINE SC_OFF_EFFECTS  10
 .DEFINE SC_OFF_MOVES    12
-.DEFINE SC_PRIMARY      16      ; primary[4]
+.DEFINE SC_PRIMARY      16      ; primary[16] (PREFIX = 16 + 16 = 32)
 
 ; ---- RAM variables ($C000-$DFFF) -----------------------------------------
 .ENUM $C000

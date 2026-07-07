@@ -25,8 +25,8 @@ SVJ.clock = (function () {
       return (state.fps * 60) / state.bpm / BEAT;
     }
 
-    // Axis sizes: effect = clamped 9-way dial; scene 16; palette 8; movement 7.
-    const N = { scene: 16, palette: 8, movement: 7, effect: 9 };
+    // Axis sizes: effect = clamped 9-way dial; scene 16; palette 16; movement 7.
+    const N = { scene: 16, palette: 16, movement: 7, effect: 9 };
     function nudge(axis, dir) {
       if (axis === "effect") state.pend.effect = Math.max(0, Math.min(8, state.pend.effect + dir));
       else state.pend[axis] = ((state.pend[axis] + dir) % N[axis] + N[axis]) % N[axis];

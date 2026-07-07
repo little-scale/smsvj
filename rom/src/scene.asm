@@ -17,8 +17,8 @@ bank_init:
   ld (region),a
   ld a,(BANKHDR+BANK_BPM)
   ld (bpm),a
-  ld a,(BANKHDR+BANK_BOOTSCENE)     ; boot tileset 0-7
-  and 7
+  ld a,(BANKHDR+BANK_BOOTSCENE)     ; boot tileset 0-15
+  and 15
   ld (cur_scene),a
   ld (pend_scene),a
   ld a,(BANKHDR+BANK_BOOTPAL)
@@ -187,14 +187,17 @@ pal_src:
   ld h,(ix+SC_OFF_PALETTES+1)
   ld de,(scene_addr)
   add hl,de                  ; HL = palettes base
-  ld a,(cur_pal)
-  add a,a
-  add a,a
-  add a,a
-  add a,a
-  add a,a                    ; pal*32 (<=96, fits 8-bit)
-  ld e,a
-  ld d,0
+  push hl
+    ld a,(cur_pal)           ; 0-15
+    ld l,a
+    ld h,0
+    add hl,hl               ; *2
+    add hl,hl               ; *4
+    add hl,hl               ; *8
+    add hl,hl               ; *16
+    add hl,hl               ; *32  (up to 15*32=480, needs 16-bit)
+    ex de,hl               ; DE = pal*32
+  pop hl                    ; HL = palettes base
   add hl,de
   ex de,hl                   ; DE = palette src
   ret

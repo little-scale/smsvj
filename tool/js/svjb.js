@@ -29,7 +29,7 @@ SVJ.svjb = (function () {
   }
 
   const EFFECT_COUNT = 9;     // NONE centre + 4 up (glitch) + 4 down (glitch)
-  const PALETTE_COUNT = 8;    // global palettes (B1+B2 up/down of 8)
+  const PALETTE_COUNT = 16;   // global palettes, paired 1:1 with the 16 tilesets
   const MOVEMENT_COUNT = 7;   // slow/fast x up/down, 2 wobbles, none
   const PREFIX = 16 + PALETTE_COUNT; // scene header + primary[PALETTE_COUNT]
 
@@ -63,7 +63,7 @@ SVJ.svjb = (function () {
     w.u8(sceneCount);
     w.u8(bank.default_bpm & 0xff);
     w.u8(bank.boot.scene & 0x0f);            // 0-15 (bank*4 + slot)
-    w.u8(bank.boot.palette & 3);
+    w.u8(bank.boot.palette & 0x0f);          // 0-15 (paired with tileset)
     w.u8(bank.boot.effect & 0x0f);           // 0-8 (dial: NONE + 4 up + 4 down)
     w.u8(bank.boot.movement & 3);
     const scenePtrPos = w.len(); // offset 12

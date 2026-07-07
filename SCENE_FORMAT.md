@@ -97,8 +97,8 @@ unaligned bank for tools that address it linearly.
 
 The 16-byte header is immediately followed by the `primary[]` array (one entry per
 palette). The `off_*` fields are scene-relative offsets to the sections — the runtime
-reads them, so section counts are flexible. **Current builds use `primary[8]` (24-byte
-prefix), 8 palettes, 9 effects, and 7 movements.**
+reads them, so section counts are flexible. **Current builds use `primary[16]` (32-byte
+prefix), 16 palettes, 9 effects, and 7 movements.**
 
 ---
 
@@ -169,8 +169,9 @@ the fold differs.
 
 ## 7. PALETTES section
 
-**8 palettes** (global — the same 8 in every tileset, so palette and tileset are
-independent axes), each **32 bytes** = the full CRAM (2 banks of 16). One colour per byte,
+**16 palettes** (global — the same 16 in every tileset, so palette and tileset are
+independent axes; paired 1:1 by index with the 16 tilesets), each **32 bytes** = the full
+CRAM (2 banks of 16). One colour per byte,
 6-bit SMS colour `0b00BBGGRR` (each channel 0–3; 64 possible colours).
 
 The per-palette **primary index** (from `primary[4]` in the scene header) points at the

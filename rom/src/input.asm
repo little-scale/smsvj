@@ -3,7 +3,7 @@
 ;
 ;   B1     : L/R = effect SPEED (0-15, clamped)  U/D = effect DIAL (of 9)
 ;   B2     :                                U/D = movement (of 7)
-;   B1+B2  : L/R = tileset (of 16)          U/D = palette (of 8)
+;   B1+B2  : L/R = tileset (of 16)          U/D = palette (of 16)
 ;   PAUSE button (NMI) : colour freeze (toggle) -- see nmi handler
 ;   B2 tap alone (on release) : overlay toggle
 ; ---------------------------------------------------------------------------
@@ -26,7 +26,7 @@ ri_decode:
   ld a,c
   and PAD_B2
   jr z,ri_b1only
-  ; --- B1 + B2 : L/R = tileset (of 8), U/D = palette (of 4), no d-pad = freeze ---
+  ; --- B1 + B2 : L/R = tileset (of 16), U/D = palette (of 16), no d-pad = freeze ---
   bit 3,d                    ; right -> tileset +1
   jr z,bb_l
   ld hl,pend_scene
@@ -42,13 +42,13 @@ bb_u:
   bit 0,d                    ; up -> palette +1
   jr z,bb_d
   ld hl,pend_pal
-  call nudge_p8_up
+  call nudge_p16_up
   call set_b2mod
 bb_d:
   bit 1,d                    ; down -> palette -1
   jr z,ri_store
   ld hl,pend_pal
-  call nudge_p8_down
+  call nudge_p16_down
   call set_b2mod
   jp ri_store
 
@@ -131,17 +131,17 @@ nudge_s16_down:
   ld (hl),a
   ret
 
-; Palette selector: wrap modulo 8.
-nudge_p8_up:
+; Palette selector: wrap modulo 16 (paired 1:1 with the 16 tilesets).
+nudge_p16_up:
   ld a,(hl)
   inc a
-  and 7
+  and 15
   ld (hl),a
   ret
-nudge_p8_down:
+nudge_p16_down:
   ld a,(hl)
   dec a
-  and 7
+  and 15
   ld (hl),a
   ret
 

@@ -23,7 +23,7 @@ boundary (the *latch*), so you can arm a move early and it lands in time.
 | **B1 + ← / →** | **Effect speed** — 0–15, clamped (no wrap); scales corruption passes/frame | instant |
 | **B2 + ↑ / ↓** | **Movement** — 7 options (see below) | tick |
 | **B1+B2 + ← / →** | **Tileset** — of 16; palette stays | beat |
-| **B1+B2 + ↑ / ↓** | **Palette** — of 8; tileset stays | tick |
+| **B1+B2 + ↑ / ↓** | **Palette** — of 16; tileset stays | tick |
 | **B2 tap** (alone) | Overlay show / hide | on release |
 | **Pause** (console button) | **Colour freeze** — hold current colours (toggle) | instant |
 

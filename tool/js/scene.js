@@ -87,13 +87,16 @@ SVJ.scene = (function () {
 
   const G = (o) => Object.assign(SVJ.generators.defaults(), o);
 
-  // Four GLOBAL palettes, shared by every tileset. Because they're identical
-  // across tilesets, palette and tileset are independent: switching tileset
-  // keeps the palette, switching palette keeps the tileset. (B1+B2: up/down =
-  // palette of 4, left/right = tileset of 8.)
+  // 16 GLOBAL palettes, paired 1:1 with the 16 tilesets (importing a .svjt into
+  // tileset N drops its palette into palette slot N). Still globally selectable, so
+  // palette and tileset stay independent on the pad. Slots 0-7 are the hand-tuned
+  // themes; 8-15 are hue-shifted variants for a full 16.
+  const shift = (t, d) => ({ ...t, rp: t.rp + d, gp: t.gp + d, bp: t.bp + d });
+  const BASE_THEMES = [THEMES.spectrum, THEMES.ember, THEMES.tide, THEMES.uv,
+    THEMES.candy, THEMES.forest, THEMES.sunset, THEMES.neon];
   const GLOBAL_PALETTES = [
-    ramp(THEMES.spectrum), ramp(THEMES.ember), ramp(THEMES.tide), ramp(THEMES.uv),
-    ramp(THEMES.candy), ramp(THEMES.forest), ramp(THEMES.sunset), ramp(THEMES.neon),
+    ...BASE_THEMES.map((t) => ramp(t)),
+    ...BASE_THEMES.map((t) => ramp(shift(t, 2.4))),
   ];
 
   // 16 fresh tilesets — a mix of rich radial/interference work (folded mandalas,
@@ -129,8 +132,8 @@ SVJ.scene = (function () {
       tileBudget: def.tileBudget || 48,   // cap for fast scene/tile swaps
       bank: 0,
       priority: 0,
-      palettes: GLOBAL_PALETTES.map((p) => Uint8Array.from(p)), // identical -> decoupled
-      primary: new Array(8).fill(def.primary),
+      palettes: GLOBAL_PALETTES.map((p) => Uint8Array.from(p)), // 16 global palettes
+      primary: new Array(16).fill(def.primary),
       effects: def.effects.map((e) => ({ ...e })),
       movements: def.movements.map((m) => ({ ...m })),
     };

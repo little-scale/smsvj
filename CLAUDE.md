@@ -54,13 +54,14 @@ Each button owns a theme — B1 = effect, B2 = look, B1+B2 = source:
 | B1 + ←/→ | **effect speed** (0–15, clamped — no wrap) | instant |
 | B2 + ↑/↓ | movement (of 7) | tick |
 | B1+B2 + ←/→ | **tileset** (of 16) — palette stays | beat |
-| B1+B2 + ↑/↓ | **palette** (of 8) — tileset stays | tick |
+| B1+B2 + ↑/↓ | **palette** (of 16) — tileset stays | tick |
 | B2 tap (alone) | overlay show/hide | instant (on release) |
 | **Pause button** (NMI) | colour freeze — hold the current colours (toggle) | instant |
 
 **Palette and tileset are independent** (no "bank"): the B1+B2 combo mixes them — ←/→
 swaps the tileset keeping the palette, ↑/↓ swaps the palette keeping the tileset. There
-are **16 tilesets and 8 (global) palettes**. Latches: palette/effect/movement on the
+are **16 tilesets and 16 (global) palettes**, paired 1:1 (importing a `.svjt` into
+tileset N drops its palette into palette slot N). Latches: palette/effect/movement on the
 **tick**, tileset on the **beat**. The **effect dial** is all corruption: down = SMEAR-D
 / STAMP / XOR / MORPH, centre = NONE, up = SCRAMBLE / SMEAR-H / SMEAR-V / CHURN.
 **Movement of 7**: slow/fast × up/down, two anti-phase wobbles, and none. **Speed** (0–15)

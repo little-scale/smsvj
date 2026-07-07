@@ -245,7 +245,7 @@
   function buildAxes() {
     document.querySelectorAll(".axbtns").forEach((host) => {
       const axis = host.dataset.axis;
-      const n = { effect: 9, scene: 16, palette: 8, movement: 7 }[axis] || 4;
+      const n = { effect: 9, scene: 16, palette: 16, movement: 7 }[axis] || 4;
       host.innerHTML = "";
       for (let i = 0; i < n; i++) {
         const b = document.createElement("b");
@@ -463,17 +463,22 @@
       try {
         const doc = JSON.parse(reader.result);
         if (doc.svjt !== 1 || !Array.isArray(doc.pixels)) throw new Error("not a .svjt source");
+        const slot = ui.curScene;                       // tileset slot == paired palette slot
         scene().mode = doc.mode === "full" ? "full" : "quarter";
         scene().generator = null;                       // hand-composed, not generated
         scene().pixels = doc.pixels.map((r) => r.slice());
         if (Array.isArray(doc.palette) && doc.palette.length >= 32) {
-          scene().palettes[ui.editPal] = Uint8Array.from(doc.palette.slice(0, 32));
+          // Paired: the palette lands in palette slot N == tileset N (global, so all scenes).
+          const pal = Uint8Array.from(doc.palette.slice(0, 32));
+          for (const s of bank.scenes) s.palettes[slot] = Uint8Array.from(pal);
+          ui.editPal = slot; $("palSel").value = String(slot);
+          clk.state.cur.palette = clk.state.pend.palette = slot; // preview with the paired palette
         }
         $("modeSel").value = scene().mode;
         sizeAuthoring(); drawAuthoring();
-        buildCramGrid(); buildDrawSwatches();
+        buildCramGrid(); buildDrawSwatches(); buildAxes();
         rebake(ui.curScene);
-        setStatus(`imported ${scene().mode} source into tileset ${ui.curScene}`, "ok");
+        setStatus(`imported → tileset ${slot} + palette ${slot}`, "ok");
       } catch (err) { setStatus("import failed: " + (err.message || err), "err"); }
       e.target.value = "";
     };
@@ -728,6 +733,7 @@
     $("bpm").value = bank.default_bpm;
     $("spdVal").textContent = ui.moshSpeed;
     $("sceneSel").innerHTML = bank.scenes.map((s, i) => `<option>${i}</option>`).join("");
+    $("palSel").innerHTML = bank.scenes.map((s, i) => `<option>${i}</option>`).join(""); // 16 palettes, paired with tilesets
     buildGeneratorControls();
     syncGeneratorControls();
     sizeAuthoring();
