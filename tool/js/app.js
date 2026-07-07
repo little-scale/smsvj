@@ -708,7 +708,7 @@
   };
   $("romFile").onchange = (e) => { if (e.target.files[0]) loadRom(e.target.files[0]); };
   $("romOff").oninput = (e) => setRomOff(ROM.format === "raw" ? (parseInt(e.target.value, 10) & ~31) : parseInt(e.target.value, 10));
-  $("romPhase").oninput = (e) => { ROM.phase = parseInt(e.target.value, 10) & 31; $("vRomPhase").textContent = ROM.phase; setRomOff(ROM.off); };
+  $("romPhase").oninput = (e) => { ROM.phase = parseInt(e.target.value, 10) & 255; $("vRomPhase").textContent = ROM.phase; setRomOff(ROM.off); };
   $("romFill").onclick = fillSourceFromRom;
   const romImp = $("romImp");
   ["dragover", "dragenter"].forEach((ev) => romImp.addEventListener(ev, (e) => { e.preventDefault(); romImp.classList.add("drag"); }));

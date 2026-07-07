@@ -160,7 +160,7 @@
   };
   $("romFile").onchange = (e) => e.target.files[0] && loadRom(e.target.files[0]);
   $("romOff").oninput = (e) => { const v = parseInt(e.target.value, 10); ROM.off = ROM.format === "raw" ? (v & ~31) : v; $("vRomOff").textContent = "0x" + ROM.off.toString(16); romSheetTiles(); };
-  $("romPhase").oninput = (e) => { ROM.phase = parseInt(e.target.value, 10) & 31; $("vRomPhase").textContent = ROM.phase; romSheetTiles(); };
+  $("romPhase").oninput = (e) => { ROM.phase = parseInt(e.target.value, 10) & 255; $("vRomPhase").textContent = ROM.phase; romSheetTiles(); };
   $("romGrabPal").onclick = () => { pal = decodePalAt(ROM.off + ROM.phase); afterPalChange(); setStatus(`palette ← ROM @ 0x${(ROM.off + ROM.phase).toString(16)}`, "ok"); };
   $("romPalGG").onchange = (e) => { ROM.palGG = e.target.checked; renderRomPalPreview(); };
 
