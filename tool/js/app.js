@@ -402,18 +402,27 @@
   }
 
   // ---- export ----
+  // Emit the ROM-ready image: scenes page-aligned to 16 KB and padded to 4 pages
+  // (64 KB), exactly what rom/assets/look.svjb must be. Drop the download straight
+  // into rom/assets/ and `make`.
+  const PAGE = 0x4000, PAGES = 4;
   function doExport() {
     try {
-      const { bytes } = SVJB.serialize(bank);
+      const { bytes } = SVJB.serialize(bank, { pageSize: PAGE });
       const info = SVJB.decode(bytes); // round-trip validation
-      const blob = new Blob([bytes], { type: "application/octet-stream" });
+      if (bytes.length > PAGE * PAGES) {
+        throw new Error(`aligned bank ${bytes.length} B exceeds ${PAGE * PAGES} B (${PAGES} pages)`);
+      }
+      const padded = new Uint8Array(PAGE * PAGES);
+      padded.set(bytes);
+      const blob = new Blob([padded], { type: "application/octet-stream" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = "look.svjb";
       a.click();
       URL.revokeObjectURL(a.href);
       const tiles = info.scenes.map((s) => s.tile_count).join("/");
-      setStatus(`exported ${bytes.length} B · valid · tiles ${tiles}`, "ok");
+      setStatus(`exported ${padded.length} B (${bytes.length} used) · valid · tiles ${tiles}`, "ok");
     } catch (e) {
       setStatus("export failed: " + (e.message || e), "err");
     }

@@ -72,8 +72,21 @@ cd rom
 make bank && make      # → rom/smsvj.sms (96 KB, standard Sega mapper)
 ```
 
-`make bank` re-exports `assets/look.svjb` from the look-patcher before assembling. Run
-it whenever you change the tool; plain `make` reuses the existing bank.
+`make bank` re-exports `assets/look.svjb` from the look-patcher's built-in scenes
+before assembling. Plain `make` reuses the existing bank.
+
+To build the ROM from a **scene bank you authored in the browser tool** (its ⬇ Export
+.svjb button writes the ROM-ready page-aligned image directly):
+
+```
+cd rom
+make import FILE=~/Downloads/look.svjb   # copies/re-pages it into assets/
+make
+```
+
+`make import` routes through `tool/repage.js`, which page-aligns each scene to 16 KB and
+pads to the four 16 KB banks the ROM slices — so it works for current exports and older
+compact ones alike.
 
 ## Status
 

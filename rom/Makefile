@@ -25,7 +25,15 @@ $(ROM): $(MAIN) $(SRCS) $(ASSET)
 bank:
 	node ../tool/export-bank.js $(ASSET) $(ROM_SCENES)
 
+# Import a .svjb exported from the browser look-patcher into the ROM.
+#   make import FILE=~/Downloads/look.svjb
+# Routes through repage.js, so it works for both the current (page-aligned) exports
+# and older compact ones. Follow with `make` to rebuild.
+import:
+	@test -n "$(FILE)" || { echo "usage: make import FILE=<path to .svjb>"; exit 1; }
+	node ../tool/repage.js "$(FILE)" $(ASSET)
+
 clean:
 	rm -rf build $(ROM)
 
-.PHONY: all bank clean
+.PHONY: all bank import clean
