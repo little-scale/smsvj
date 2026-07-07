@@ -109,7 +109,8 @@ tiles_src       dw          ; ROM address of the scene's clean tiles (for CHURN 
 tile_count      db          ; current scene tile count (SCRAMBLE index range)
 mosh_mask       db          ; (2^n)-1 covering tile_count (random-index masking)
 tiles_dirty     db          ; VRAM pattern data has been corrupted (MELT/CHURN)
-layout_dirty    db          ; VRAM name table has been scrambled (SCRAMBLE)
+layout_dirty    db          ; VRAM name table has been scrambled (SCRAMBLE/SMEAR)
+mosh_speed      db          ; corruption speed 0-3 -> runs 1<<n times per frame
 fx_type         db          ; decoded active effect record
 fx_p0           db
 fx_p1           db

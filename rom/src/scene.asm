@@ -48,6 +48,9 @@ bank_init:
   ld (freeze),a
   ld (mv_phase),a
   ld (tiles_dirty),a
+  ld (layout_dirty),a
+  inc a                       ; a was 0
+  ld (mosh_speed),a           ; default speed = 1
   ld hl,$ACE1                 ; nonzero LFSR seed
   ld (lfsr),hl
   call clock_compute_fpt

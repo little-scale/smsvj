@@ -58,12 +58,21 @@ SVJ.scene = (function () {
 
   // Shared axis config: NONE/INVERT/ROTATE/BLANK, and 4 movements where slot 0
   // FLOWS (boot movement) and slot 3 is STATIC to stop motion.
-  // Corruption suite. Banks get different "personalities": even banks lead with
-  // MELT, odd banks with SMEAR, so all modes are reachable across the 16 scenes.
-  // (SCRAMBLE p0=flip cells, p1=tile-swap cells; SMEAR p0=cells, p1=drag offset.)
-  const EFFECTS = (variant) => variant === 1
-    ? [fx(0x00, 0, 0, 0), fx(0x0a, 40, 1, 0), fx(0x09, 20, 16, 0), fx(0x08, 24, 8, 0)]   // SMEAR / CHURN / SCRAMBLE
-    : [fx(0x00, 0, 0, 0), fx(0x07, 24, 0, 0), fx(0x09, 20, 16, 0), fx(0x08, 24, 8, 0)];  // MELT  / CHURN / SCRAMBLE
+  // Effect DIAL (B1 up/down): NONE at centre (index 4). Push DOWN for colour
+  // effects, UP for glitch corruption. Corruption rates are per-frame (see the
+  // runtime's speed control). SCRAMBLE p0=flip cells,p1=tile swaps; SMEAR
+  // p0=cells,p1=drag offset (1=horizontal, 32=one row = vertical).
+  const EFFECTS = () => [
+    fx(0x06, 0, 0, 0),      // 0 BLANK        (down end)
+    fx(0x03, -1, 1, 15),    // 1 ROTATE back
+    fx(0x03, 1, 1, 15),     // 2 ROTATE fwd
+    fx(0x02, 0, 1, 15),     // 3 INVERT
+    fx(0x00, 0, 0, 0),      // 4 NONE         (centre)
+    fx(0x08, 8, 3, 0),      // 5 SCRAMBLE
+    fx(0x0a, 12, 1, 0),     // 6 SMEAR-H
+    fx(0x0a, 12, 32, 0),    // 7 SMEAR-V
+    fx(0x09, 8, 6, 0),      // 8 CHURN        (up end)
+  ];
   const FLOW = () => [mv(0x01, 1, 1, 15), mv(0x02, 2, 1, 15), mv(0x03, 1, 1, 15), mv(0x00, 1, 0, 0)];
 
   const G = (o) => Object.assign(SVJ.generators.defaults(), o);
@@ -129,14 +138,11 @@ SVJ.scene = (function () {
   function defaultMovements() { return FLOW(); }
 
   function makeBank() {
-    const scenes = DEFS.map(makeSceneFrom);
-    // give each bank (group of 4) its corruption personality
-    scenes.forEach((s, i) => { s.effects = EFFECTS((i >> 2) & 1); });
     return {
       region: 0,
       default_bpm: 120,
-      boot: { scene: 0, palette: 0, effect: 0, movement: 0 },
-      scenes,
+      boot: { scene: 0, palette: 0, effect: 4, movement: 0 }, // effect 4 = NONE (dial centre)
+      scenes: DEFS.map(makeSceneFrom),
     };
   }
 

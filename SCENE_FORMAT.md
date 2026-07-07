@@ -183,7 +183,9 @@ whichever palette is current, so they compose.
 
 ## 8. EFFECTS section
 
-4 records, **4 bytes** each: `type, p0, p1, p2`.
+`scene_count`-independent **effect records**, 4 bytes each: `type, p0, p1, p2`. The
+current banks ship **9** (an up/down dial: NONE centre, 4 glitch up, 4 colour down);
+the runtime indexes them 0–8. `off_movements` locates the end, so the count is flexible.
 
 | type | name | p0 | p1 | p2 |
 |----|----|----|----|----|

@@ -1,10 +1,10 @@
 ; ---------------------------------------------------------------------------
-; Controller-1 pad grammar (capture-instant). D-pad is edge-detected; each axis
-; accumulates a pending 2-bit index that the clock latches on its boundary.
+; Controller-1 pad grammar (capture-instant). D-pad is edge-detected.
 ;
-;   B1 + L/R : palette      B1 + U/D : effect
-;   B2 + L/R : scene        B2 + U/D : movement
-;   B1+B2 (no d-pad) : freeze (momentary)   B1+B2 + L/R : tempo nudge
+;   B1     : L/R = effect SPEED (instant)   U/D = effect DIAL (of 9, clamped)
+;   B2     : L/R = palette (of 4)           U/D = movement (of 4)
+;   B1+B2  : L/R = scene / tileset (of 4)   U/D = bank (of 4)
+;   B1+B2 (no d-pad) : freeze (momentary)
 ;   B2 tap alone (on release) : overlay toggle
 ; ---------------------------------------------------------------------------
 .SECTION "input" FREE
@@ -35,35 +35,34 @@ ri_decode:
   ld a,c
   and PAD_B1
   jr z,ri_b2only             ; B1 not held
-  ; --- B1 held ---
   ld a,c
   and PAD_B2
   jr z,ri_b1only
-  ; --- B1 + B2 held ---
-  ; up/down -> scene BANK select (of 4)
-  bit 0,d
-  jr z,ri_bb_down
+  ; --- B1 + B2 : L/R = scene, U/D = bank, (no d-pad) = freeze ---
+  bit 3,d                    ; right -> scene +1
+  jr z,bb_l
+  ld hl,pend_scene
+  call nudge_up
+  call set_b2mod
+bb_l:
+  bit 2,d                    ; left -> scene -1
+  jr z,bb_u
+  ld hl,pend_scene
+  call nudge_down
+  call set_b2mod
+bb_u:
+  bit 0,d                    ; up -> bank +1
+  jr z,bb_d
   ld hl,pend_bank
   call nudge_up
   call set_b2mod
-ri_bb_down:
-  bit 1,d
-  jr z,ri_bb_lr
+bb_d:
+  bit 1,d                    ; down -> bank -1
+  jr z,bb_frz
   ld hl,pend_bank
   call nudge_down
   call set_b2mod
-ri_bb_lr:
-  ; left/right -> tempo nudge (instant): right = +1, left = -1
-  bit 3,d
-  jr z,ri_bb_l
-  call tempo_up
-  call set_b2mod
-ri_bb_l:
-  bit 2,d
-  jr z,ri_bb_frz
-  call tempo_down
-  call set_b2mod
-ri_bb_frz:
+bb_frz:
   ; freeze only while B1+B2 held with NO d-pad currently held
   ld a,c
   and PAD_UP|PAD_DOWN|PAD_LEFT|PAD_RIGHT
@@ -77,51 +76,40 @@ ri_bb_frz:
   jp ri_store
 
 ri_b1only:
-  ; B1 + L/R -> palette ; B1 + U/D -> effect
-  bit 3,d
-  jr z,+
-  ld hl,pend_pal
-  call nudge_up
-+:
-  bit 2,d
-  jr z,+
-  ld hl,pend_pal
-  call nudge_down
-+:
-  bit 0,d
-  jr z,+
-  ld hl,pend_fx
-  call nudge_up
-+:
-  bit 1,d
-  jr z,ri_store
-  ld hl,pend_fx
-  call nudge_down
+  ; B1 : L/R = effect speed (instant) ; U/D = effect dial (clamp 0-8)
+  bit 3,d                    ; right -> faster
+  call nz,speed_up
+  bit 2,d                    ; left -> slower
+  call nz,speed_down
+  bit 0,d                    ; up -> effect +1
+  call nz,nudge_fx_up
+  bit 1,d                    ; down -> effect -1
+  call nz,nudge_fx_down
   jp ri_store
 
 ri_b2only:
   ld a,c
   and PAD_B2
   jr z,ri_none               ; neither B1 nor B2 held
-  ; B2 + L/R -> scene ; B2 + U/D -> movement (all set b2_mod)
+  ; B2 : L/R = palette ; U/D = movement (all set b2_mod)
   bit 3,d
-  jr z,+
-  ld hl,pend_scene
+  jr z,b2_l
+  ld hl,pend_pal
   call nudge_up
   call set_b2mod
-+:
+b2_l:
   bit 2,d
-  jr z,+
-  ld hl,pend_scene
+  jr z,b2_u
+  ld hl,pend_pal
   call nudge_down
   call set_b2mod
-+:
+b2_u:
   bit 0,d
-  jr z,+
+  jr z,b2_d
   ld hl,pend_mv
   call nudge_up
   call set_b2mod
-+:
+b2_d:
   bit 1,d
   jr z,ri_store
   ld hl,pend_mv
@@ -164,24 +152,40 @@ nudge_down:
   ld (hl),a
   ret
 
+; Effect dial: clamp pend_fx to 0..8 (NONE centre = 4).
+nudge_fx_up:
+  ld a,(pend_fx)
+  cp 8
+  ret z
+  inc a
+  ld (pend_fx),a
+  ret
+nudge_fx_down:
+  ld a,(pend_fx)
+  or a
+  ret z
+  dec a
+  ld (pend_fx),a
+  ret
+
+; Effect speed: clamp mosh_speed to 0..3 (instant).
+speed_up:
+  ld a,(mosh_speed)
+  cp 3
+  ret z
+  inc a
+  ld (mosh_speed),a
+  ret
+speed_down:
+  ld a,(mosh_speed)
+  or a
+  ret z
+  dec a
+  ld (mosh_speed),a
+  ret
+
 set_b2mod:
   ld a,1
   ld (b2_mod),a
   ret
-
-; Tempo nudge (INT clock): bpm +/-1, clamped 20..240, then recompute fpt.
-tempo_up:
-  ld a,(bpm)
-  cp 240
-  ret z
-  inc a
-  ld (bpm),a
-  jp clock_compute_fpt
-tempo_down:
-  ld a,(bpm)
-  cp 20
-  ret z
-  dec a
-  ld (bpm),a
-  jp clock_compute_fpt
 .ENDS

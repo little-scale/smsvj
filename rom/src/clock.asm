@@ -85,11 +85,10 @@ clock_tick:
   ld (mv_count),a
 ct_beat:
   call latch_fast            ; palette/effect/movement latch every TICK (snappy)
-  call mosh_step             ; active corruption effect runs each tick
   ld a,(tick_lo)
   and 3
   ret nz                     ; scene latches on the beat (every 4 ticks)
-  call mosh_step             ; beat kick: an extra burst on the beat (pulses to clock)
+  call mosh_step             ; beat kick: an extra corruption burst on the beat
   jp latch_scene
 
 ; Fast latch: palette / effect / movement (capture-instant, apply-on-tick).

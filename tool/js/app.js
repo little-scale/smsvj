@@ -17,6 +17,8 @@
     lastBeat: 0,
     lastTs: 0,
     wobblePhase: 0,
+    moshSpeed: 1,       // 0-3, matches the ROM's B1+left/right speed
+    lastRenderBeat: 0,
   };
 
   const $ = (id) => document.getElementById(id);
@@ -176,14 +178,16 @@
     });
   }
 
-  // ---- axis buttons ----
+  // ---- axis buttons ----  (effect is a 9-way dial; other axes are of 4)
   function buildAxes() {
     document.querySelectorAll(".axbtns").forEach((host) => {
       const axis = host.dataset.axis;
+      const n = axis === "effect" ? 9 : 4;
       host.innerHTML = "";
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < n; i++) {
         const b = document.createElement("b");
-        b.textContent = i;
+        b.textContent = axis === "effect" ? EFFECT_NAMES[scene().effects[i].type].slice(0, 3) : i;
+        b.title = axis === "effect" ? EFFECT_NAMES[scene().effects[i].type] : "";
         if (clk.state.cur[axis] === i) b.classList.add("cur");
         if (clk.state.pend[axis] === i && clk.state.pend[axis] !== clk.state.cur[axis]) b.classList.add("pend");
         b.onclick = () => {
@@ -236,9 +240,9 @@
     // Corruption effects, mirroring the ROM. MELT(7)/CHURN(9) mutate a working
     // copy of the tile patterns; SCRAMBLE(8) toggles flip/palette-bank bits of
     // name-table cells. Copies rebuild clean when off or the scene changes.
-    // Beat kick: an extra corruption burst on the beat, so the glitch pulses.
+    // Corruption amount per frame = speed multiplier, with an extra beat kick.
     const beatNow = Math.floor(clk.state.tick / CLK.BEAT);
-    const kick = beatNow !== ui.lastRenderBeat ? 2 : 1;
+    const kick = (beatNow !== ui.lastRenderBeat ? 2 : 1) * (1 << ui.moshSpeed);
     ui.lastRenderBeat = beatNow;
 
     let tilesForRender = b.tiles;
@@ -372,6 +376,10 @@
   };
   $("freeze").onmousedown = () => { ui.freeze = true; };
   window.addEventListener("mouseup", () => { ui.freeze = false; });
+
+  function setSpeed(v) { ui.moshSpeed = Math.max(0, Math.min(3, v)); $("spdVal").textContent = ui.moshSpeed; }
+  $("spdUp").onclick = () => setSpeed(ui.moshSpeed + 1);
+  $("spdDn").onclick = () => setSpeed(ui.moshSpeed - 1);
 
   // keyboard: number keys pick draw colour; space toggles play.
   window.addEventListener("keydown", (e) => {
