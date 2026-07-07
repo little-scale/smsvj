@@ -115,6 +115,7 @@
     const out = [];
     for (let i = 0; i < 256; i++) out.push(T.decode(bytes, i * 32));
     SRC.tiles = out; SRC.cols = 16; renderSrc();
+    renderRomPalPreview();
   }
   function loadRom(file) {
     const rd = new FileReader();
@@ -137,6 +138,17 @@
     }
     return out;
   }
+  // Live preview of the 32 CRAM entries at the current offset (+ phase), before grabbing.
+  function renderRomPalPreview() {
+    const host = $("romPalPreview"); host.innerHTML = "";
+    if (!ROM.buf) return;
+    const p = decodePalAt(ROM.off + ROM.phase);
+    for (let i = 0; i < 32; i++) {
+      const el = document.createElement("i");
+      el.style.background = C.toHex(p[i]); el.title = `entry ${i} = 0x${p[i].toString(16)}`;
+      host.appendChild(el);
+    }
+  }
   $("romFmt").innerHTML = SVJ.romdecode.FORMATS.map((f) => `<option value="${f.key}">${f.label}</option>`).join("");
   $("romFmt").onchange = (e) => { ROM.format = e.target.value; $("romOff").step = ROM.format === "raw" ? 32 : 1; if (ROM.buf) romSheetTiles(); };
   $("romFindRnc").onclick = () => {
@@ -149,8 +161,8 @@
   $("romFile").onchange = (e) => e.target.files[0] && loadRom(e.target.files[0]);
   $("romOff").oninput = (e) => { const v = parseInt(e.target.value, 10); ROM.off = ROM.format === "raw" ? (v & ~31) : v; $("vRomOff").textContent = "0x" + ROM.off.toString(16); romSheetTiles(); };
   $("romPhase").oninput = (e) => { ROM.phase = parseInt(e.target.value, 10) & 31; $("vRomPhase").textContent = ROM.phase; romSheetTiles(); };
-  $("romGrabPal").onclick = () => { pal = decodePalAt(ROM.off); afterPalChange(); setStatus(`palette ← ROM @ 0x${ROM.off.toString(16)}`, "ok"); };
-  $("romPalGG").onchange = (e) => { ROM.palGG = e.target.checked; };
+  $("romGrabPal").onclick = () => { pal = decodePalAt(ROM.off + ROM.phase); afterPalChange(); setStatus(`palette ← ROM @ 0x${(ROM.off + ROM.phase).toString(16)}`, "ok"); };
+  $("romPalGG").onchange = (e) => { ROM.palGG = e.target.checked; renderRomPalPreview(); };
 
   // ---- image source ----
   let imgEl = null;

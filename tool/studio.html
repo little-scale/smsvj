@@ -43,8 +43,10 @@
           <input id="romPhase" type="range" min="0" max="31" step="1" value="0" disabled /></label>
         <div class="row"><label>Decode <select id="romFmt"></select></label>
           <button id="romFindRnc" disabled>Find RNC ▸</button>
-          <button id="romGrabPal" disabled>Grab palette here</button>
           <label class="chk"><input type="checkbox" id="romPalGG" /> 12-bit (GG)</label></div>
+        <div class="rompalprev"><span class="hint">palette at offset</span>
+          <div class="cram" id="romPalPreview"></div>
+          <button id="romGrabPal" disabled>Grab palette ▸</button></div>
       </div>
 
       <div class="tabpane hidden" id="pane-image">
