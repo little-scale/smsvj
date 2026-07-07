@@ -519,7 +519,9 @@
   $("flipH").onclick = () => { brushFlip ^= 1; $("flipH").classList.toggle("on", brushFlip & 1); updateBrushInfo(); };
   $("flipV").onclick = () => { brushFlip ^= 2; $("flipV").classList.toggle("on", brushFlip & 2); updateBrushInfo(); };
   $("mode").onchange = (e) => { newTarget(e.target.value); resetHistory(); renderTarget(); renderPreview(); };
-  $("clear").onclick = () => { pushHistory(); newTarget(TGT.mode); renderTarget(); renderPreview(); };
+  const clearCompose = () => { pushHistory(); newTarget(TGT.mode); tgtSel = null; renderTarget(); renderPreview(); };
+  $("clear").onclick = clearCompose;
+  $("clearCompose").onclick = clearCompose;
   $("undo").onclick = undo;
   $("redo").onclick = redo;
   window.addEventListener("keydown", (e) => {
