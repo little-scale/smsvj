@@ -29,6 +29,16 @@
   }
   function setStatus(m, cls) { const e = $("status"); e.textContent = m; e.className = "status" + (cls ? " " + cls : ""); }
 
+  // ---- undo/redo history (compose target) ----
+  const HISTORY_MAX = 40;
+  let past = [], future = [];
+  const clonePixels = (p) => p.map((r) => r.slice());
+  function updateHistBtns() { $("undo").disabled = !past.length; $("redo").disabled = !future.length; }
+  function pushHistory() { past.push(clonePixels(TGT.pixels)); if (past.length > HISTORY_MAX) past.shift(); future = []; updateHistBtns(); }
+  function resetHistory() { past = []; future = []; updateHistBtns(); }
+  function undo() { if (!past.length) return; future.push(clonePixels(TGT.pixels)); TGT.pixels = past.pop(); tgtSel = null; renderTarget(); renderPreview(); updateHistBtns(); }
+  function redo() { if (!future.length) return; past.push(clonePixels(TGT.pixels)); TGT.pixels = future.pop(); tgtSel = null; renderTarget(); renderPreview(); updateHistBtns(); }
+
   // ---- source sheet ----
   const srcSheet = $("srcSheet"), sctx = srcSheet.getContext("2d");
   function renderSrc() {
@@ -231,6 +241,7 @@
   }
   // Auto-tessellate the brush across the whole frame (both axes).
   function fillAll() {
+    pushHistory();
     for (let cy = 0; cy < TGT.tilesH; cy++) for (let cx = 0; cx < TGT.tilesW; cx++) writeTileAt(cx, cy, brushTileFor(cx, cy));
     renderTarget(); renderPreview();
   }
@@ -254,6 +265,7 @@
   function afterEdit() { renderTarget(); renderPreview(); }
   const opRegion = () => tgtSel || { x: 0, y: 0, w: TGT.tilesW, h: TGT.tilesH };
   function invertRegion() {
+    pushHistory();
     const s = opRegion();
     for (let r = 0; r < s.h * 8; r++) for (let c = 0; c < s.w * 8; c++) {
       const y = s.y * 8 + r, x = s.x * 8 + c; TGT.pixels[y][x] = 15 - (TGT.pixels[y][x] & 15);
@@ -261,12 +273,14 @@
     afterEdit();
   }
   function mirrorHRegion() {
+    pushHistory();
     const s = opRegion(), W = s.w * 8;
     for (let r = 0; r < s.h * 8; r++) { const y = s.y * 8 + r;
       for (let c = 0; c < W >> 1; c++) { const a = s.x * 8 + c, b = s.x * 8 + W - 1 - c; const t = TGT.pixels[y][a]; TGT.pixels[y][a] = TGT.pixels[y][b]; TGT.pixels[y][b] = t; } }
     afterEdit();
   }
   function mirrorVRegion() {
+    pushHistory();
     const s = opRegion(), H = s.h * 8;
     for (let c = 0; c < s.w * 8; c++) { const x = s.x * 8 + c;
       for (let r = 0; r < H >> 1; r++) { const a = s.y * 8 + r, b = s.y * 8 + H - 1 - r; const t = TGT.pixels[a][x]; TGT.pixels[a][x] = TGT.pixels[b][x]; TGT.pixels[b][x] = t; } }
@@ -276,6 +290,7 @@
   // to the frame). Square selections rotate losslessly.
   function rotateRegion() {
     if (!tgtSel) { setStatus("select a block to rotate", "err"); return; }
+    pushHistory();
     const s = tgtSel, W = s.w * 8, H = s.h * 8;
     const src = [];
     for (let r = 0; r < H; r++) { const row = []; for (let c = 0; c < W; c++) row.push(TGT.pixels[s.y * 8 + r][s.x * 8 + c] & 15); src.push(row); }
@@ -298,6 +313,7 @@
   tgt.addEventListener("mousedown", (e) => {
     const c = tgtCellAt(e);
     if ($("selectMode").checked) { tgtSelDrag = c; tgtSel = { x: c.tx, y: c.ty, w: 1, h: 1 }; renderTarget(); return; }
+    pushHistory();
     if ($("bucket").checked) { floodFill(c.tx, c.ty); return; }
     tgtSel = null; tgtPaint = true; stampAt(c.tx, c.ty);
   });
@@ -365,8 +381,17 @@
   });
   $("flipH").onclick = () => { brushFlip ^= 1; $("flipH").classList.toggle("on", brushFlip & 1); updateBrushInfo(); };
   $("flipV").onclick = () => { brushFlip ^= 2; $("flipV").classList.toggle("on", brushFlip & 2); updateBrushInfo(); };
-  $("mode").onchange = (e) => { newTarget(e.target.value); renderTarget(); renderPreview(); };
-  $("clear").onclick = () => { newTarget(TGT.mode); renderTarget(); renderPreview(); };
+  $("mode").onchange = (e) => { newTarget(e.target.value); resetHistory(); renderTarget(); renderPreview(); };
+  $("clear").onclick = () => { pushHistory(); newTarget(TGT.mode); renderTarget(); renderPreview(); };
+  $("undo").onclick = undo;
+  $("redo").onclick = redo;
+  window.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+    if (!(e.metaKey || e.ctrlKey)) return;
+    const k = e.key.toLowerCase();
+    if (k === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+    else if (k === "y") { e.preventDefault(); redo(); }
+  });
 
   // ---- export ----
   $("export").onclick = () => {
@@ -388,4 +413,5 @@
   // ---- init ----
   newTarget("quarter");
   buildPalStrip(); buildSolidStrip(); buildGamut(); renderSrc(); renderTarget(); renderPreview();
+  updateHistBtns();
 })();
