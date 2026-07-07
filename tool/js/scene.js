@@ -26,7 +26,8 @@ SVJ.scene = (function () {
       pal[i] = (b << 4) | (g << 2) | r;
       pal[16 + i] = pal[i];
     }
-    pal[0] = backdrop & 0x3f;
+    pal[0] = backdrop & 0x3f;   // bank 0 backdrop
+    pal[16] = backdrop & 0x3f;  // bank 1 entry 0 = SMS border/backdrop colour
     return pal;
   }
   // A theme = four palettes (the B1+←/→ options), each a hue-rotated sibling.

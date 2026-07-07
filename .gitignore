@@ -6,6 +6,7 @@
 
 # WLA-DX intermediates
 *.lst
+rom/build/
 
 # Python
 __pycache__/
