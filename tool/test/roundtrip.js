@@ -9,7 +9,7 @@ global.window = { SVJ: shared };
 global.SVJ = shared;
 
 const base = path.join(__dirname, "..", "js");
-for (const f of ["color.js", "tiles.js", "fold.js", "svjb.js", "scene.js", "render.js", "clock.js"]) {
+for (const f of ["color.js", "tiles.js", "fold.js", "generators.js", "svjb.js", "scene.js", "render.js", "clock.js"]) {
   eval(fs.readFileSync(path.join(base, f), "utf8"));
 }
 // `SVJ` here resolves to the global populated by the modules above (no local decl,

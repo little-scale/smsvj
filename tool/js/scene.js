@@ -47,54 +47,9 @@ SVJ.scene = (function () {
     sunset:   { rp: 0.3, gp: 1.1, bp: 2.6, freq: 1, backdrop: 0 },     // orange/pink/purple
   };
 
-  // ---- source pattern generators (all repeating / tileable) ---------------
-  // Each fills px[y][x] with a CRAM index 0..15. Periodic so they read as a
-  // lattice; quarter mode then folds them into a 4-way symmetric quilt, full
-  // mode tiles them straight. idx() wraps a value into the live range 1..15.
-  const idx = (v) => 1 + (((v % 15) + 15) % 15);
-
-  // Nested diamonds (taxicab metric). period = tile pitch, div = band thickness.
-  function fillDiamonds(px, w, h, period, div) {
-    const p = period || 64, d = div || 3, half = p / 2;
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const u = (x % p) - half, v = (y % p) - half;
-      px[y][x] = idx(Math.floor((Math.abs(u) + Math.abs(v)) / d));
-    }
-  }
-  // Concentric squares (Chebyshev metric) -> boxed-in rings.
-  function fillNested(px, w, h) {
-    const p = 48, half = 24;
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const u = Math.abs((x % p) - half), v = Math.abs((y % p) - half);
-      px[y][x] = idx(Math.floor(Math.max(u, v) / 2));
-    }
-  }
-  // Basket weave: alternating horizontal / vertical strands, shaded across.
-  function fillWeave(px, w, h) {
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const over = (Math.floor(x / 16) + Math.floor(y / 16)) & 1;
-      const v = over ? (y % 16) : (x % 16);
-      px[y][x] = idx(v + (over ? 0 : 7));
-    }
-  }
-  // Truchet: quarter-arc tiles that alternate orientation -> flowing woven curves.
-  function fillTruchet(px, w, h) {
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const cx = x % 16, cy = y % 16;
-      const orient = (Math.floor(x / 16) ^ Math.floor(y / 16)) & 1;
-      const d = orient
-        ? Math.min(Math.hypot(cx, cy), Math.hypot(16 - cx, 16 - cy))
-        : Math.min(Math.hypot(16 - cx, cy), Math.hypot(cx, 16 - cy));
-      px[y][x] = idx(Math.floor(d / 1.4));
-    }
-  }
-  // Zigzag chevrons marching down the screen.
-  function fillChevron(px, w, h) {
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const v = Math.abs((x % 32) - 16);
-      px[y][x] = idx(Math.floor((y + v) / 3));
-    }
-  }
+  // Patterns are now geometry: each scene carries a `generator` params object
+  // (see generators.js) that produces the source pixels. Same params drive the
+  // browser Generator panel, so authoring == dialling geometry.
 
   function fx(type, p0, p1, p2) { return { type, p0: p0 | 0, p1: p1 | 0, p2: p2 | 0 }; }
   function mv(type, division, range_start, range_len) {
@@ -106,33 +61,34 @@ SVJ.scene = (function () {
   const EFFECTS = () => [fx(0x00, 0, 0, 0), fx(0x02, 0, 1, 15), fx(0x03, 1, 1, 15), fx(0x06, 0, 0, 0)];
   const FLOW = () => [mv(0x01, 1, 1, 15), mv(0x02, 2, 1, 15), mv(0x03, 1, 1, 15), mv(0x00, 1, 0, 0)];
 
+  const G = (o) => Object.assign(SVJ.generators.defaults(), o);
+
   // ---- the four scene definitions: a repeating-lattice set, all flowing ----
   const DEFS = [
-    { // 0 — DIAMONDS: uniform full-frame nested diamonds (the yellow/blue lattice).
-      mode: "full", gen: (p, w, h) => fillDiamonds(p, w, h, 64, 3), variants: [0],
-      theme: "tide", primary: 8, effects: EFFECTS(), movements: FLOW(),
+    { // 0 — DIAMONDS: uniform full-frame nested diamonds (taxicab metric).
+      mode: "full", generator: G({ style: "metric", metric: "taxicab", period: 64, thickness: 3 }),
+      variants: [0], theme: "tide", primary: 8, effects: EFFECTS(), movements: FLOW(),
     },
     { // 1 — WEAVE: basket weave folded into a 4-way symmetric quilt.
-      mode: "quarter", gen: fillWeave, variants: [0], theme: "candy", primary: 8,
-      effects: EFFECTS(), movements: FLOW(),
+      mode: "quarter", generator: G({ style: "weave", cell: 16 }),
+      variants: [0], theme: "candy", primary: 8, effects: EFFECTS(), movements: FLOW(),
     },
     { // 2 — TRUCHET: flowing woven curves, warm palette.
-      mode: "quarter", gen: fillTruchet, variants: [0], theme: "sunset", primary: 8,
-      effects: EFFECTS(), movements: FLOW(),
+      mode: "quarter", generator: G({ style: "truchet", cell: 16 }),
+      variants: [0], theme: "sunset", primary: 8, effects: EFFECTS(), movements: FLOW(),
     },
     { // 3 — CHEVRON: marching zigzags, hi-sat neon.
-      mode: "quarter", gen: fillChevron, variants: [0], theme: "neon", primary: 8,
-      effects: EFFECTS(), movements: FLOW(),
+      mode: "quarter", generator: G({ style: "chevron", cell: 16 }),
+      variants: [0], theme: "neon", primary: 8, effects: EFFECTS(), movements: FLOW(),
     },
   ];
 
   function makeSceneFrom(def) {
-    const px = emptyPixels(def.mode);
     const g = SVJ.fold.geometry(def.mode);
-    def.gen(px, g.pxW, g.pxH);
     return {
       mode: def.mode,
-      pixels: px,
+      generator: Object.assign({}, def.generator),
+      pixels: SVJ.generators.generate(def.generator, g.pxW, g.pxH),
       variants: def.variants.slice(),
       tileBudget: def.tileBudget || 48,   // cap for fast scene/tile swaps
       bank: 0,
@@ -147,7 +103,9 @@ SVJ.scene = (function () {
   // A blank scene of a given mode (used by the UI when switching modes).
   function makeScene(mode) {
     return makeSceneFrom({
-      mode, gen: mode === "quarter" ? fillWeave : (p, w, h) => fillDiamonds(p, w, h, 64, 3),
+      mode,
+      generator: mode === "quarter" ? G({ style: "weave", cell: 16 })
+                                    : G({ style: "metric", metric: "taxicab", period: 64, thickness: 3 }),
       variants: [0], theme: "spectrum", primary: 8,
       effects: EFFECTS(), movements: FLOW(),
     });
