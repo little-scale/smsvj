@@ -10,10 +10,12 @@ SVJ.romdecode = (function () {
   const FORMATS = [
     { key: "raw", label: "Raw (uncompressed)" },
     { key: "ps", label: "Phantasy Star RLE" },
+    { key: "s1", label: "Sonic 1 SMS" },
     { key: "s2", label: "Sonic 2 / Aspect" },
     { key: "rnc", label: "RNC ProPack (1/2)" },
   ];
   const S2_MAX_TILES = 4096;                            // guard against garbage offsets
+  const S1_MAX_ROWS = 8192;                             // 1024 tiles
   const RNC_MAX_OUT = 512 * 1024;                       // cap decompressed size (garbage offsets)
 
   // One deinterleaved bitplane: 0nnnnnnn dd = run of n identical; 1nnnnnnn <n bytes> =
@@ -209,6 +211,45 @@ SVJ.romdecode = (function () {
     return { bytes: out, ok };
   }
 
+  // "Sonic 1" SMS art (Ancient). Header "48 59", then DuplicateRows offset(LE),
+  // ArtData offset(LE), row count(LE), all relative to the header; then a per-row
+  // unique/duplicate bitmask. Each tile-row (4 bytes) is either read fresh from
+  // ArtData (unique) or references an earlier unique row by index (duplicate; a
+  // leading 0xFn byte extends the index past 255). See smspower SonicTheHedgehogTileDecoder.
+  function s1Decode(buf, base) {
+    if (buf[base] !== 0x48 || buf[base + 1] !== 0x59) return { bytes: new Uint8Array(0), ok: false };
+    const dupOff = buf[base + 2] | (buf[base + 3] << 8);
+    const artOff = buf[base + 4] | (buf[base + 5] << 8);
+    const rows = buf[base + 6] | (buf[base + 7] << 8);
+    const artData = base + artOff;
+    if (rows === 0 || rows > S1_MAX_ROWS || artData >= buf.length || base + dupOff >= buf.length) return { bytes: new Uint8Array(0), ok: false };
+    const uniq = base + 8;
+    let dup = base + dupOff, art = artData, o = 0;
+    const out = new Uint8Array(rows * 4);
+    for (let i = 0; i < rows; i++) {
+      if (buf[uniq + (i >> 3)] & (1 << (i & 7))) {        // duplicate row -> reference an earlier unique row
+        let b = buf[dup++] || 0, hi = 0;
+        if (b >= 0xf0) { hi = b - 0xf0; b = buf[dup++] || 0; }
+        const src = artData + (((hi << 8) | b) * 4);
+        out[o++] = buf[src] || 0; out[o++] = buf[src + 1] || 0; out[o++] = buf[src + 2] || 0; out[o++] = buf[src + 3] || 0;
+      } else {                                            // unique row -> fresh 4 bytes from ArtData
+        out[o++] = buf[art++] || 0; out[o++] = buf[art++] || 0; out[o++] = buf[art++] || 0; out[o++] = buf[art++] || 0;
+      }
+    }
+    return { bytes: out, ok: true };
+  }
+  function findS1(buf, from) {
+    for (let o = Math.max(0, from); o + 8 < buf.length; o++) {
+      if (buf[o] === 0x48 && buf[o + 1] === 0x59) {
+        const dupOff = buf[o + 2] | (buf[o + 3] << 8), artOff = buf[o + 4] | (buf[o + 5] << 8), rows = buf[o + 6] | (buf[o + 7] << 8);
+        if (rows >= 64 && rows <= S1_MAX_ROWS && artOff > 8 && dupOff > 8 && o + artOff < buf.length && o + dupOff < buf.length) {
+          if (s1Decode(buf, o).ok) return o;
+        }
+      }
+    }
+    return -1;
+  }
+
   // Scan forward for the next CRC-valid RNC block (magic "RNC" + method 1/2, then
   // full decode + CRC check to reject false ASCII hits). Returns offset or -1.
   function findRnc(buf, from) {
@@ -250,10 +291,21 @@ SVJ.romdecode = (function () {
 
   function decode(buf, off, format) {
     if (format === "ps") return psDecode(buf, off);
+    if (format === "s1") return s1Decode(buf, off).bytes;
     if (format === "s2") return s2Decode(buf, off);
     if (format === "rnc") return rncUnpack(buf, off).bytes;
     return buf.subarray ? buf.subarray(off) : buf.slice(off); // raw view from offset
   }
 
-  return { FORMATS, decode, psDecode, s2Decode, rncUnpack, findRnc, findPS };
+  // Scan for the next block of a given format. rnc/ps/s1 have strong signatures;
+  // raw/s2 have none (scrub manually) -> -1.
+  function findNext(buf, from, format) {
+    if (format === "rnc") return findRnc(buf, from);
+    if (format === "ps") return findPS(buf, from);
+    if (format === "s1") return findS1(buf, from);
+    return -1;
+  }
+  const hasFinder = (format) => format === "rnc" || format === "ps" || format === "s1";
+
+  return { FORMATS, decode, psDecode, s2Decode, s1Decode, rncUnpack, findRnc, findPS, findS1, findNext, hasFinder };
 })();

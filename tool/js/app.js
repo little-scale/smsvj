@@ -456,8 +456,9 @@
   };
 
   // Import a .svjt scene source (from the tile studio) into the current tileset.
-  $("importSrc").onchange = (e) => {
-    const file = e.target.files[0]; if (!file) return;
+  // Works from the file picker OR by dropping a .svjt onto the Import source button.
+  function importSourceFile(file) {
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
       try {
@@ -480,10 +481,15 @@
         rebake(ui.curScene);
         setStatus(`imported → tileset ${slot} + palette ${slot}`, "ok");
       } catch (err) { setStatus("import failed: " + (err.message || err), "err"); }
-      e.target.value = "";
     };
     reader.readAsText(file);
-  };
+  }
+  $("importSrc").onchange = (e) => { importSourceFile(e.target.files[0]); e.target.value = ""; };
+  // Drag a .svjt onto the Import source button.
+  const impBtn = document.querySelector(".importbtn");
+  ["dragover", "dragenter"].forEach((ev) => impBtn.addEventListener(ev, (e) => { e.preventDefault(); impBtn.classList.add("drag"); }));
+  ["dragleave", "drop"].forEach((ev) => impBtn.addEventListener(ev, (e) => { e.preventDefault(); impBtn.classList.remove("drag"); }));
+  impBtn.addEventListener("drop", (e) => { const f = e.dataTransfer.files[0]; if (f) importSourceFile(f); });
 
   $("sceneSel").onchange = (e) => {
     ui.curScene = parseInt(e.target.value, 10);
@@ -616,8 +622,7 @@
       $("romFill").disabled = true;
       $("romPalScan").disabled = false;
       $("romPalUse").disabled = false;
-      $("romFindRnc").disabled = false;
-      $("romFindRle").disabled = false;
+      $("romFind").disabled = false;
       $("romPhase").disabled = false; ROM.phase = 0; $("romPhase").value = 0; $("vRomPhase").textContent = "0";
       ROM.palGG = /\.gg$/i.test(file.name);
       $("romPalGG").checked = ROM.palGG;
@@ -707,16 +712,12 @@
   }
   $("romFmt").innerHTML = SVJ.romdecode.FORMATS.map((f) => `<option value="${f.key}">${f.label}</option>`).join("");
   $("romFmt").onchange = (e) => { ROM.format = e.target.value; $("romOff").step = ROM.format === "raw" ? 32 : 1; if (ROM.buf) setRomOff(ROM.off); };
-  $("romFindRnc").onclick = () => {
-    const o = SVJ.romdecode.findRnc(ROM.buf, ROM.off + 1);
-    if (o < 0) { setStatus("no more RNC blocks found — wrapping", "err"); ROM.format = "rnc"; $("romFmt").value = "rnc"; $("romOff").step = 1; setRomOff(0); return; }
-    ROM.format = "rnc"; $("romFmt").value = "rnc"; $("romOff").step = 1; setRomOff(o);
-  };
-  $("romFindRle").onclick = () => {
-    const o = SVJ.romdecode.findPS(ROM.buf, ROM.off + 1);
-    ROM.format = "ps"; $("romFmt").value = "ps"; $("romOff").step = 1; ROM.phase = 0; $("romPhase").value = 0; $("vRomPhase").textContent = "0";
-    if (o < 0) { setStatus("no more RLE blocks found — wrapping", "err"); setRomOff(0); return; }
-    setRomOff(o); setStatus(`Phantasy Star RLE @ 0x${o.toString(16)}`, "ok");
+  $("romFind").onclick = () => {
+    if (!SVJ.romdecode.hasFinder(ROM.format)) { setStatus(`no scanner for ${ROM.format} — scrub the offset manually`, "err"); return; }
+    ROM.phase = 0; $("romPhase").value = 0; $("vRomPhase").textContent = "0"; $("romOff").step = 1;
+    const o = SVJ.romdecode.findNext(ROM.buf, ROM.off + 1, ROM.format);
+    if (o < 0) { setStatus(`no more ${ROM.format.toUpperCase()} blocks — wrapping`, "err"); setRomOff(0); return; }
+    setRomOff(o); setStatus(`${ROM.format.toUpperCase()} block @ 0x${o.toString(16)}`, "ok");
   };
   $("romFile").onchange = (e) => { if (e.target.files[0]) loadRom(e.target.files[0]); };
   $("romOff").oninput = (e) => setRomOff(ROM.format === "raw" ? (parseInt(e.target.value, 10) & ~31) : parseInt(e.target.value, 10));

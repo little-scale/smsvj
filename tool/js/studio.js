@@ -122,9 +122,9 @@
     rd.onload = () => {
       ROM.buf = new Uint8Array(rd.result); ROM.off = 0;
       $("romOff").max = Math.max(0, ROM.buf.length - 256 * 32); $("romOff").value = 0; $("romOff").disabled = false;
-      $("vRomOff").textContent = "0x0"; $("romGrabPal").disabled = false; $("romFindRnc").disabled = false;
+      $("vRomOff").textContent = "0x0"; $("romGrabPal").disabled = false;
       ROM.phase = 0; $("romPhase").disabled = false; $("romPhase").value = 0; $("vRomPhase").textContent = "0";
-      $("romFindRle").disabled = false;
+      $("romFind").disabled = false;
       ROM.palGG = /\.gg$/i.test(file.name); $("romPalGG").checked = ROM.palGG;
       $("romInfo").textContent = `${file.name} · ${(ROM.buf.length / 1024) | 0} KB`;
       romSheetTiles();
@@ -152,17 +152,11 @@
   }
   $("romFmt").innerHTML = SVJ.romdecode.FORMATS.map((f) => `<option value="${f.key}">${f.label}</option>`).join("");
   $("romFmt").onchange = (e) => { ROM.format = e.target.value; $("romOff").step = ROM.format === "raw" ? 32 : 1; if (ROM.buf) romSheetTiles(); };
-  $("romFindRnc").onclick = () => {
-    const o = SVJ.romdecode.findRnc(ROM.buf, ROM.off + 1);
-    if (o < 0) { setStatus("no more RNC blocks — wrapping", "err"); ROM.off = 0; }
-    else { ROM.off = o; ROM.format = "rnc"; $("romFmt").value = "rnc"; $("romOff").step = 1; }
-    $("romOff").value = Math.min(ROM.off, +$("romOff").max); $("vRomOff").textContent = "0x" + ROM.off.toString(16);
-    romSheetTiles();
-  };
-  $("romFindRle").onclick = () => {
-    const o = SVJ.romdecode.findPS(ROM.buf, ROM.off + 1);
-    if (o < 0) { setStatus("no more RLE blocks — wrapping", "err"); ROM.off = 0; }
-    else { ROM.off = o; ROM.phase = 0; $("romPhase").value = 0; $("vRomPhase").textContent = "0"; ROM.format = "ps"; $("romFmt").value = "ps"; $("romOff").step = 1; setStatus(`Phantasy Star RLE @ 0x${o.toString(16)}`, "ok"); }
+  $("romFind").onclick = () => {
+    if (!SVJ.romdecode.hasFinder(ROM.format)) { setStatus(`no scanner for ${ROM.format} — scrub the offset manually`, "err"); return; }
+    const o = SVJ.romdecode.findNext(ROM.buf, ROM.off + 1, ROM.format);
+    if (o < 0) { setStatus(`no more ${ROM.format.toUpperCase()} blocks — wrapping`, "err"); ROM.off = 0; }
+    else { ROM.off = o; ROM.phase = 0; $("romPhase").value = 0; $("vRomPhase").textContent = "0"; $("romOff").step = 1; setStatus(`${ROM.format.toUpperCase()} block @ 0x${o.toString(16)}`, "ok"); }
     $("romOff").value = Math.min(ROM.off, +$("romOff").max); $("vRomOff").textContent = "0x" + ROM.off.toString(16);
     romSheetTiles();
   };
