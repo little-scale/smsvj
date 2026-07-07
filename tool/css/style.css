@@ -98,3 +98,14 @@ button.on { background: var(--accent2); color: #2a0620; border-color: var(--acce
 }
 .palgen .row { margin-bottom: .3rem; }
 .palgen button { flex: 1; }
+
+/* ROM tile importer */
+.romimp { margin: .6rem 0; border: 1px solid var(--edge); border-radius: 6px; padding: .5rem .6rem; }
+.romimp summary { cursor: pointer; color: var(--accent2); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+.romimp.drag { outline: 2px dashed var(--accent); outline-offset: 2px; }
+.romimp .filebtn { flex-direction: row; align-items: center; text-transform: none; color: var(--ink); }
+.romimp .romofflbl { display: flex; align-items: center; gap: .4rem; flex-direction: row; margin: .4rem 0; }
+.romimp .romofflbl b { color: var(--accent); min-width: 5ch; }
+#romOff { flex: 1; accent-color: var(--accent); }
+.romsheet { width: 100%; image-rendering: pixelated; cursor: crosshair; background: #000; margin: .2rem 0; }
+#romFill { margin-left: auto; }

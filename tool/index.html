@@ -40,6 +40,28 @@
         <label>Cell <b id="vCell" class="mono"></b><input id="genCell" type="range" min="8" max="32" step="2" /></label>
       </div>
       <div class="row"><button id="genRandom">🎲 Randomize</button><span class="hint" id="tileBudgetHint"></span></div>
+
+      <details class="romimp" id="romImp">
+        <summary>Import tiles from a ROM</summary>
+        <div class="row">
+          <label class="filebtn">Choose / drop .sms · .gg
+            <input type="file" id="romFile" accept=".sms,.gg,.bin,.rom" />
+          </label>
+          <span class="hint" id="romInfo">no ROM loaded</span>
+        </div>
+        <label class="romofflbl">Offset <b id="vRomOff" class="mono">0x0</b>
+          <input id="romOff" type="range" min="0" max="0" step="32" value="0" disabled />
+        </label>
+        <canvas id="romSheet" class="pixelcanvas romsheet"></canvas>
+        <div class="row">
+          <span class="hint" id="romSel">drop a ROM, then drag to select a tile block</span>
+          <button id="romFill" disabled>Fill source ▸</button>
+        </div>
+        <p class="hint">Reads raw Mode 4 tiles — only <em>uncompressed</em> graphics show; scrub
+          the offset until real tiles appear. The selected block tiles across the whole source
+          (folded in quarter mode). Colour it afterwards with the palette tools.</p>
+      </details>
+
       <canvas id="authCanvas" class="pixelcanvas"></canvas>
       <div class="draw-swatches" id="drawSwatches"></div>
       <p class="hint">Dial the geometry — the tileset regenerates, dedups (incl. flips), and re-bakes live. You can still paint on top. Quarter mode folds a 4-way kaleidoscope.</p>

@@ -486,6 +486,107 @@
   $("spdUp").onclick = () => setSpeed(ui.moshSpeed + 1);
   $("spdDn").onclick = () => setSpeed(ui.moshSpeed - 1);
 
+  // ---- ROM tile importer (drop a ROM, select a block, fill the source) ----
+  // Reads raw Mode 4 tiles from any file. The selected WxH tile block tiles across the
+  // whole source, then folds/dedups/bakes like any other pattern.
+  const ROM = { buf: null, off: 0, sw: 16, sh: 16, sel: null };
+  const romSheet = $("romSheet");
+  const romCtx = romSheet.getContext("2d");
+  romSheet.width = ROM.sw * 8; romSheet.height = ROM.sh * 8;
+  let romDrag = null;
+
+  const romTileOff = (col, row) => ROM.off + (row * ROM.sw + col) * 32;
+
+  function renderRomSheet() {
+    if (!ROM.buf) return;
+    const img = romCtx.createImageData(romSheet.width, romSheet.height);
+    for (let row = 0; row < ROM.sh; row++) {
+      for (let col = 0; col < ROM.sw; col++) {
+        const t = SVJ.tiles.decode(ROM.buf, romTileOff(col, row));
+        for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+          const g = (t[r][c] & 15) * 17;                       // greyscale so structure reads
+          const p = ((row * 8 + r) * romSheet.width + (col * 8 + c)) * 4;
+          img.data[p] = g; img.data[p + 1] = g; img.data[p + 2] = g; img.data[p + 3] = 255;
+        }
+      }
+    }
+    romCtx.putImageData(img, 0, 0);
+    if (ROM.sel) {
+      romCtx.strokeStyle = "#57e0c8"; romCtx.lineWidth = 1;
+      romCtx.strokeRect(ROM.sel.x * 8 + 0.5, ROM.sel.y * 8 + 0.5, ROM.sel.w * 8 - 1, ROM.sel.h * 8 - 1);
+    }
+  }
+  function romMouseTile(ev) {
+    const rect = romSheet.getBoundingClientRect();
+    return {
+      col: Math.max(0, Math.min(ROM.sw - 1, Math.floor((ev.clientX - rect.left) / rect.width * ROM.sw))),
+      row: Math.max(0, Math.min(ROM.sh - 1, Math.floor((ev.clientY - rect.top) / rect.height * ROM.sh))),
+    };
+  }
+  function updateRomSel() {
+    if (!ROM.sel) { $("romSel").textContent = "drag to select a tile block"; return; }
+    const off = romTileOff(ROM.sel.x, ROM.sel.y);
+    $("romSel").textContent = `sel ${ROM.sel.w}×${ROM.sel.h} tiles @ 0x${off.toString(16)}`;
+    $("romFill").disabled = false;
+  }
+  romSheet.addEventListener("mousedown", (e) => {
+    if (!ROM.buf) return;
+    romDrag = romMouseTile(e);
+    ROM.sel = { x: romDrag.col, y: romDrag.row, w: 1, h: 1 };
+    renderRomSheet(); updateRomSel();
+  });
+  romSheet.addEventListener("mousemove", (e) => {
+    if (!romDrag) return;
+    const t = romMouseTile(e);
+    ROM.sel = { x: Math.min(romDrag.col, t.col), y: Math.min(romDrag.row, t.row),
+      w: Math.abs(t.col - romDrag.col) + 1, h: Math.abs(t.row - romDrag.row) + 1 };
+    renderRomSheet(); updateRomSel();
+  });
+  window.addEventListener("mouseup", () => { romDrag = null; });
+
+  function loadRom(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      ROM.buf = new Uint8Array(reader.result);
+      ROM.off = 0; ROM.sel = null;
+      const slider = $("romOff");
+      slider.max = Math.max(0, ROM.buf.length - ROM.sw * ROM.sh * 32);
+      slider.value = 0; slider.disabled = false;
+      $("vRomOff").textContent = "0x0";
+      $("romInfo").textContent = `${file.name} · ${(ROM.buf.length / 1024) | 0} KB · ${(ROM.buf.length / 32) | 0} tiles`;
+      $("romFill").disabled = true;
+      renderRomSheet(); updateRomSel();
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  function fillSourceFromRom() {
+    if (!ROM.buf || !ROM.sel) return;
+    const g = F.geometry(scene().mode);
+    const px = [];
+    for (let y = 0; y < g.pxH; y++) px.push(new Array(g.pxW).fill(0));
+    for (let ty = 0; ty < g.tilesH; ty++) {
+      for (let tx = 0; tx < g.tilesW; tx++) {
+        const t = SVJ.tiles.decode(ROM.buf, romTileOff(ROM.sel.x + (tx % ROM.sel.w), ROM.sel.y + (ty % ROM.sel.h)));
+        for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) px[ty * 8 + r][tx * 8 + c] = t[r][c];
+      }
+    }
+    scene().pixels = px;
+    drawAuthoring();
+    rebake(ui.curScene);
+    setStatus(`filled tileset ${ui.curScene} from ROM (${ROM.sel.w}×${ROM.sel.h} block)`, "ok");
+  }
+  $("romFile").onchange = (e) => { if (e.target.files[0]) loadRom(e.target.files[0]); };
+  $("romOff").oninput = (e) => {
+    ROM.off = parseInt(e.target.value, 10) & ~31;
+    $("vRomOff").textContent = "0x" + ROM.off.toString(16);
+    renderRomSheet(); updateRomSel();
+  };
+  $("romFill").onclick = fillSourceFromRom;
+  const romImp = $("romImp");
+  ["dragover", "dragenter"].forEach((ev) => romImp.addEventListener(ev, (e) => { e.preventDefault(); romImp.classList.add("drag"); }));
+  ["dragleave", "drop"].forEach((ev) => romImp.addEventListener(ev, (e) => { e.preventDefault(); romImp.classList.remove("drag"); }));
+  romImp.addEventListener("drop", (e) => { const f = e.dataTransfer.files[0]; if (f) { romImp.open = true; loadRom(f); } });
+
   // keyboard: number keys pick draw colour; space toggles play.
   window.addEventListener("keydown", (e) => {
     if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;

@@ -51,6 +51,24 @@ SVJ.tiles = (function () {
     return out;
   }
 
+  // Inverse of encode: read a Mode 4 tile (32 bytes) from `buf` at `off` -> 8x8
+  // index array. Bytes past the end of the buffer read as 0 (for ripping ROM tails).
+  function decode(buf, off) {
+    const t = [];
+    for (let r = 0; r < SIZE; r++) {
+      const b = off + r * 4;
+      const p0 = buf[b] || 0, p1 = buf[b + 1] || 0, p2 = buf[b + 2] || 0, p3 = buf[b + 3] || 0;
+      const row = [];
+      for (let c = 0; c < SIZE; c++) {
+        const bit = 7 - c;
+        row.push(((p0 >> bit) & 1) | (((p1 >> bit) & 1) << 1) |
+                 (((p2 >> bit) & 1) << 2) | (((p3 >> bit) & 1) << 3));
+      }
+      t.push(row);
+    }
+    return t;
+  }
+
   // De-dup a list of tiles including flips.
   // Returns { unique: [tile...], refs: [{index, h, v}...] } (refs parallel to input).
   // The stored representative is the FIRST-seen tile of each flip-equivalence class;
@@ -125,5 +143,5 @@ SVJ.tiles = (function () {
     return { unique, refs };
   }
 
-  return { SIZE, hflip, vflip, hvflip, applyFlip, key, equal, encode, dedupe, reduceToBudget };
+  return { SIZE, hflip, vflip, hvflip, applyFlip, key, equal, encode, decode, dedupe, reduceToBudget };
 })();
