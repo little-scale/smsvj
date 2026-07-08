@@ -201,7 +201,7 @@ D-pad picks the value. Changes latch on the next musical boundary.
 | **B2 + ↑ / ↓** | Movement — 7 options | tick |
 | **B1+B2 + ← / →** | Tileset — of 16; palette stays | beat |
 | **B1+B2 + ↑ / ↓** | Palette — of 16; tileset stays | tick |
-| **B2 tap** (alone) | Overlay show / hide | on release |
+| **B2 tap** (alone) | Toggle the on-beat border flash (any clock source; off by default) | on release |
 | **Pause** (console button) | Cycle sync source: OFF → IN → IN24 (shows the mode ~2 s) | instant |
 
 Palette and tileset are **independent** — the B1+B2 combo mixes them. **Movement of 7:**

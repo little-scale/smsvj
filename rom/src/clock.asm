@@ -100,7 +100,7 @@ cf_in:                       ; ÷1: tick C times
   ld b,c
 cf_in_l:
   push bc
-  call sync_tick
+  call clock_tick
   pop bc
   djnz cf_in_l
   ret
@@ -112,21 +112,11 @@ cf_in24_l:
   jr c,cf_in24_done
   sub 6
   push af
-  call sync_tick
+  call clock_tick
   pop af
   jr cf_in24_l
 cf_in24_done:
   ld (sync_acc6),a
-  ret
-
-; One sync-driven tick, flashing the border on the beat (every 4th tick).
-sync_tick:
-  call clock_tick
-  ld a,(tick_lo)
-  and 3
-  ret nz
-  ld a,CLOCK_FLASH
-  ld (sync_flash),a
   ret
 
 ; Called once per frame: acc += 1.0, and emit a tick when acc >= fpt.
@@ -171,6 +161,13 @@ ct_beat:
   ld a,(tick_lo)
   and 3
   ret nz                     ; scene latches on the beat (every 4 ticks)
+  ; --- beat --- optional border flash (B2 tap; any clock source)
+  ld a,(beat_flash)
+  or a
+  jr z,ct_noflash
+  ld a,CLOCK_FLASH
+  ld (sync_flash),a
+ct_noflash:
   call mosh_step             ; beat kick: an extra corruption burst on the beat
   jp latch_scene
 

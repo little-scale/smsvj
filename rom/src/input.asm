@@ -5,7 +5,7 @@
 ;   B2     :                                U/D = movement (of 7)
 ;   B1+B2  : L/R = tileset (of 16)          U/D = palette (of 16)
 ;   PAUSE button (NMI) : colour freeze (toggle) -- see nmi handler
-;   B2 tap alone (on release) : overlay toggle
+;   B2 tap alone (on release) : toggle the on-beat border flash
 ; ---------------------------------------------------------------------------
 .SECTION "input" FREE
 
@@ -83,16 +83,16 @@ b2_d:
   jp ri_store
 
 ri_none:
-  ; neither held now: was B2 just released? tap (no modifier) toggles overlay.
+  ; neither held now: was B2 just released? a bare tap toggles the beat flash.
   ld a,(prev_pad)
   and PAD_B2
   jr z,ri_store              ; B2 wasn't held last frame
   ld a,(b2_mod)
   or a
   jr nz,ri_clearmod
-  ld a,(overlay)
+  ld a,(beat_flash)
   xor 1
-  ld (overlay),a             ; overlay rendering: TODO (sprite row)
+  ld (beat_flash),a          ; B2 tap: toggle the on-beat border flash (any mode)
 ri_clearmod:
   xor a
   ld (b2_mod),a

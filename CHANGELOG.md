@@ -3,6 +3,23 @@
 All notable changes to SMSVJ. Versions mirror the sibling
 [SMSGGDJ](https://github.com/little-scale/smsggdj) `v0.YY` scheme.
 
+## Unreleased
+
+- **Sync** — the Pause button now cycles the clock source **OFF → IN → IN24** (was colour
+  freeze). IN follows an SMSGGDJ/genmddj SYNC OUT (÷1); IN24 follows a 24-PPQN sender (÷6).
+  A **B2 tap** toggles an on-beat border flash (off by default, works in any clock source).
+  **Hardware-confirmed:** IN24 off a USB-MIDI clock through the ESP32-S3 bridge, with the
+  beat flash.
+- **On-screen text** — added the SMSGGDJ 8×8 font and a sprite text overlay; shows the
+  version and the git build id at boot (~2 s each), and the sync mode whenever it changes.
+- **Build versioning** — a git short-hash build id baked in at boot (`make vrom` for a
+  hash-stamped copy), matching smsggdj.
+- **Wider effect speeds** — 16-bit rate table, ~255 corruption passes/frame at the top
+  (was ~31); browser preview matched.
+- **16 palettes** paired 1:1 with the 16 tilesets (a `.svjt` import lands its palette in the
+  matching slot); ROM ripping gained Sonic 1 and a unified **Find ▸** scanner; studio gained
+  move, tile ops, pixel pencil, brush slots, and a ROM/image tile importer.
+
 ## v0.1 — 2026-07-08
 
 First release: the two browser tools and a working Master System visual runtime,

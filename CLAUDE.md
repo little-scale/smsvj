@@ -55,7 +55,7 @@ Each button owns a theme — B1 = effect, B2 = look, B1+B2 = source:
 | B2 + ↑/↓ | movement (of 7) | tick |
 | B1+B2 + ←/→ | **tileset** (of 16) — palette stays | beat |
 | B1+B2 + ↑/↓ | **palette** (of 16) — tileset stays | tick |
-| B2 tap (alone) | overlay show/hide | instant (on release) |
+| B2 tap (alone) | toggle on-beat border flash (any clock source; off by default) | instant (on release) |
 | **Pause button** (NMI) | cycle sync source: OFF → IN → IN24 (shows the mode ~2 s) | instant |
 
 **Palette and tileset are independent** (no "bank"): the B1+B2 combo mixes them — ←/→

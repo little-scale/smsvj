@@ -37,7 +37,7 @@ bank_init:
   ld (acc_hi),a
   ld (prev_pad),a
   ld (b2_mod),a
-  ld (overlay),a
+  ld (beat_flash),a           ; beat flash off by default
   ld (freeze),a
   ld (mv_phase),a
   ld (tiles_dirty),a

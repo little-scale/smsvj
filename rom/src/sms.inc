@@ -101,7 +101,7 @@ pend_mv         db
 
 prev_pad        db          ; last frame's pad state (for edge detect)
 b2_mod          db          ; a modifier fired during the current B2 hold
-overlay         db          ; overlay visible flag
+beat_flash      db          ; beat-flash indicator on/off (B2 tap; default off)
 freeze          db          ; freeze-to-primary active
 
 scene_addr      dw          ; base of the current scene in ROM
