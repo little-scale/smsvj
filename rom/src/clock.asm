@@ -89,11 +89,15 @@ clock_frame:
   ld b,a                     ; tick B times
   xor a
   ld (sync_idle),a
-  ld a,CLOCK_FLASH
-  ld (sync_flash),a
 cf_tick:
   push bc
   call clock_tick
+  ld a,(tick_lo)             ; flash on the beat only (every 4th tick)
+  and 3
+  jr nz,cf_nobeat
+  ld a,CLOCK_FLASH
+  ld (sync_flash),a
+cf_nobeat:
   pop bc
   djnz cf_tick
   ret
