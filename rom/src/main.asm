@@ -167,7 +167,7 @@ sst_draw:
   ld (boot_stage),a           ; a sync overlay ends the boot version/id sequence
   ret
 
-str_version:   .db "V0.11",0
+str_version:   .db "V0.12",0
 str_sync_off:  .db "SYNC OFF",0
 str_sync_in:   .db "SYNC IN",0
 str_sync_in24: .db "SYNC 24",0

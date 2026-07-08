@@ -3,6 +3,20 @@
 All notable changes to SMSVJ. Versions mirror the sibling
 [SMSGGDJ](https://github.com/little-scale/smsggdj) `v0.YY` scheme.
 
+## v0.12 — 2026-07-08
+
+Patch ROMs in the browser — no toolchain.
+
+- **Browser ROM patching.** The look-patcher can **⬆ Load ROM** a prebuilt `smsvj.sms` and
+  **⬇ Export ROM** a flash-ready `smsvj-patched.sms`. The scene bank is spliced into the ROM
+  outside the SMS checksum, so the result is **byte-identical to a full `make` build** — end
+  users no longer need WLA-DX or `make`.
+- **Tidied the look-patcher.** Removed the ROM tile importer (ripping graphics lives in the
+  tile studio); the Generator panel now focuses on geometry + palettes.
+- **Preview parity.** The corruption cycle resets on effect change, matching the ROM.
+
+(ROM binary is functionally identical to v0.11 apart from the version string.)
+
 ## v0.11 — 2026-07-08
 
 Tempo-locked visuals and hardware-confirmed sync.
