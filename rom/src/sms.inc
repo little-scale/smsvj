@@ -132,5 +132,6 @@ sync_acc6       db          ; IN24: received clocks accumulated toward a tick (Ã
 sync_flash      db          ; border-flash countdown on a sync beat
 text_timer      db          ; version / sync-mode overlay countdown (frames)
 sync_pending    db          ; NMI -> main: sync mode changed, draw the overlay
+boot_stage      db          ; boot text sequence: 0 version -> 1 build id -> 2 done
 live_pal        dsb 32      ; live 32-entry CRAM shadow (CRAM isn't readable)
 .ENDE

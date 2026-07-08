@@ -71,7 +71,9 @@ boot:
   ld a,$E0
   ld b,$81
   call vdp_reg
-  ; show the version for ~2 s over the opening visual
+  ; boot text: version for ~2 s, then the build id for ~2 s
+  xor a
+  ld (boot_stage),a
   ld hl,str_version
   call text_draw
   ld a,TEXT_FRAMES
@@ -122,7 +124,21 @@ ml_notext:
   call set_text_ink           ; CRAM 17 = white so the text reads over any palette
   ld a,(text_timer)
   or a
-  jr nz,ml_nooverlay
+  jr nz,ml_nooverlay          ; still showing
+  ; timer hit 0: advance the boot sequence (version -> build id), else hide
+  ld a,(boot_stage)
+  cp 2
+  jr nc,ml_texthide           ; boot done (or a sync overlay): hide
+  inc a
+  ld (boot_stage),a
+  cp 2
+  jr z,ml_texthide            ; was showing the build id: done
+  ld hl,str_buildid           ; version done -> show the build id
+  call text_draw
+  ld a,TEXT_FRAMES
+  ld (text_timer),a
+  jr ml_nooverlay
+ml_texthide:
   call text_hide
 ml_nooverlay:
   ; per-frame corruption (B1+left/right = speed). speed_rate is in 1/8-frame
@@ -175,6 +191,8 @@ sst_draw:
   call text_draw
   ld a,TEXT_FRAMES
   ld (text_timer),a
+  ld a,2
+  ld (boot_stage),a           ; a sync overlay ends the boot version/id sequence
   ret
 
 str_version:   .db "V0.1",0
@@ -191,6 +209,7 @@ font_data:
 .INCLUDE "clock.asm"
 .INCLUDE "input.asm"
 .INCLUDE "scene.asm"
+.INCLUDE "buildid.inc"    ; generated: str_buildid = short git hash
 
 ; ---- embedded scene bank (four 16 KB pages -> ROM banks 2..5) --------------
 .BANK 2 SLOT 2
