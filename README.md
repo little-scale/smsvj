@@ -81,7 +81,12 @@ node tool/test/roundtrip.js
 
 ## ROM
 
-Build the console ROM (WLA-DX; regenerates the embedded scene bank from the tool):
+**No toolchain needed** — the look-patcher can patch a prebuilt ROM: download a
+`smsvj.sms` from [releases](https://github.com/little-scale/smsvj/releases), **⬆ Load ROM**
+in the header, author your scenes, and **⬇ Export ROM** for a flash-ready `smsvj-patched.sms`.
+The scene bank sits outside the SMS checksum, so the patch is byte-identical to a full build.
+
+To build from source instead (WLA-DX; regenerates the embedded scene bank from the tool):
 
 ```
 cd rom

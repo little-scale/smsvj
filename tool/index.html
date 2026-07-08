@@ -18,7 +18,9 @@
         <select id="region"><option value="0">60 Hz</option><option value="1">50 Hz</option></select>
       </label>
       <button id="play" class="primary">▶ Play</button>
-      <button id="export">⬇ Export .svjb</button>
+      <label class="filebtn">⬆ Load ROM<input type="file" id="romBase" accept=".sms" /></label>
+      <button id="exportRom" disabled>⬇ Export ROM</button>
+      <button id="export">⬇ .svjb</button>
       <button id="exportSrc">⬇ Source</button>
       <label class="filebtn importbtn">⬆ Import source<input type="file" id="importSrc" accept=".svjt,.json" /></label>
       <a class="backlink" href="studio.html">▸ tile studio</a>

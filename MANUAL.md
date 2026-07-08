@@ -164,7 +164,22 @@ Once tiles are legible, drag-select them and (studio) build your scene, or (look
 
 ---
 
-## 5. Building the ROM
+## 5. Getting a ROM
+
+### Easiest — patch a ROM in the browser (no toolchain)
+
+The look-patcher can splice your scenes straight into a prebuilt ROM, so you never need
+WLA-DX or `make`:
+
+1. Download a `smsvj.sms` from the [releases](https://github.com/little-scale/smsvj/releases).
+2. In the look-patcher header, **⬆ Load ROM** and pick that `smsvj.sms`.
+3. Author your scenes, then **⬇ Export ROM** — it validates the ROM, replaces the embedded
+   scene bank, and downloads a flash-ready `smsvj-patched.sms`.
+
+The scene bank lives outside the SMS checksum, so the patch is exact — the result is
+byte-identical to a full `make` build with the same bank. Flash it and go.
+
+### From source (WLA-DX)
 
 Requires **WLA-DX** (`wla-z80` + `wlalink`) and Python 3 / Node.
 

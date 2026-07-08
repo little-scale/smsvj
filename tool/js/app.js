@@ -406,31 +406,63 @@
   }
 
   // ---- export ----
-  // Emit the ROM-ready image: scenes page-aligned to 16 KB and padded to 4 pages
-  // (64 KB), exactly what rom/assets/look.svjb must be. Drop the download straight
-  // into rom/assets/ and `make`.
-  const PAGE = 0x4000, PAGES = 4;
+  const PAGE = 0x4000, PAGES = 4;         // 64 KB bank = 4 x 16 KB pages
+  const ROM_BYTES = 0x18000, BANK_OFF = 0x8000; // 96 KB ROM; .svjb sits at 0x8000..end
+  let baseRom = null;                     // a loaded smsvj.sms to patch
+
+  // Serialize the bank to the ROM-ready, page-aligned 64 KB image (validated).
+  function serializePaddedBank() {
+    const { bytes } = SVJB.serialize(bank, { pageSize: PAGE });
+    const info = SVJB.decode(bytes);      // round-trip validation
+    if (bytes.length > PAGE * PAGES) throw new Error(`aligned bank ${bytes.length} B exceeds ${PAGE * PAGES} B`);
+    const padded = new Uint8Array(PAGE * PAGES);
+    padded.set(bytes);
+    return { padded, used: bytes.length, info };
+  }
+  function download(bytes, name) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([bytes], { type: "application/octet-stream" }));
+    a.download = name; a.click(); URL.revokeObjectURL(a.href);
+  }
+  // Export the bare .svjb bank (for `make import`, or advanced use).
   function doExport() {
     try {
-      const { bytes } = SVJB.serialize(bank, { pageSize: PAGE });
-      const info = SVJB.decode(bytes); // round-trip validation
-      if (bytes.length > PAGE * PAGES) {
-        throw new Error(`aligned bank ${bytes.length} B exceeds ${PAGE * PAGES} B (${PAGES} pages)`);
-      }
-      const padded = new Uint8Array(PAGE * PAGES);
-      padded.set(bytes);
-      const blob = new Blob([padded], { type: "application/octet-stream" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "look.svjb";
-      a.click();
-      URL.revokeObjectURL(a.href);
-      const tiles = info.scenes.map((s) => s.tile_count).join("/");
-      setStatus(`exported ${padded.length} B (${bytes.length} used) · valid · tiles ${tiles}`, "ok");
-    } catch (e) {
-      setStatus("export failed: " + (e.message || e), "err");
-    }
+      const { padded, used, info } = serializePaddedBank();
+      download(padded, "look.svjb");
+      setStatus(`exported ${padded.length} B (${used} used) · valid · tiles ${info.scenes.map((s) => s.tile_count).join("/")}`, "ok");
+    } catch (e) { setStatus("export failed: " + (e.message || e), "err"); }
   }
+
+  // Patch a loaded base ROM: splice the bank into 0x8000..end (outside the SMS
+  // checksum, so no recompute), and download a flash-ready .sms — no toolchain.
+  function loadBaseRom(file) {
+    const rd = new FileReader();
+    rd.onload = () => {
+      const rom = new Uint8Array(rd.result);
+      const tag = String.fromCharCode(...rom.slice(0x7ff0, 0x7ff8));
+      const magic = String.fromCharCode(rom[BANK_OFF], rom[BANK_OFF + 1], rom[BANK_OFF + 2], rom[BANK_OFF + 3]);
+      if (rom.length !== ROM_BYTES || tag !== "TMR SEGA" || magic !== "SVJB") {
+        baseRom = null; $("exportRom").disabled = true;
+        setStatus("not a 96 KB SMSVJ ROM (needs TMR SEGA header + SVJB bank)", "err");
+        return;
+      }
+      baseRom = rom; $("exportRom").disabled = false;
+      setStatus(`base ROM loaded (${file.name}) — Export ROM ready`, "ok");
+    };
+    rd.readAsArrayBuffer(file);
+  }
+  function doExportRom() {
+    if (!baseRom) { setStatus("load a base smsvj.sms first (⬆ Load ROM)", "err"); return; }
+    try {
+      const { padded, info } = serializePaddedBank();
+      const out = baseRom.slice();
+      out.set(padded, BANK_OFF);          // replace the 64 KB bank; checksum unaffected
+      download(out, "smsvj-patched.sms");
+      setStatus(`patched ROM ready (96 KB, flash it) · tiles ${info.scenes.map((s) => s.tile_count).join("/")}`, "ok");
+    } catch (e) { setStatus("ROM export failed: " + (e.message || e), "err"); }
+  }
+  $("romBase").onchange = (e) => { if (e.target.files[0]) loadBaseRom(e.target.files[0]); e.target.value = ""; };
+  $("exportRom").onclick = doExportRom;
 
   // ---- transport / header controls ----
   $("play").onclick = () => {
