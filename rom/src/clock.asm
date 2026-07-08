@@ -145,6 +145,16 @@ clock_tick:
   ld hl,(tick_lo)
   inc hl
   ld (tick_lo),hl
+  ; --- corruption: one step every (16 - mosh_speed) ticks (1..16), tempo-locked ---
+  ld a,(mosh_tickcnt)
+  dec a
+  jr nz,ct_moshset
+  call mosh_step
+  ld a,16
+  ld hl,mosh_speed
+  sub (hl)                   ; interval = 16 - speed (speed 15 -> 1 tick, 0 -> 16)
+ct_moshset:
+  ld (mosh_tickcnt),a
   ; --- movement down-counter (skip while STATIC) ---
   ld a,(mv_type)
   or a
@@ -161,14 +171,13 @@ ct_beat:
   ld a,(tick_lo)
   and 3
   ret nz                     ; scene latches on the beat (every 4 ticks)
-  ; --- beat --- optional border flash (B2 tap; any clock source)
+  ; --- beat --- optional border flash (B2 tap; any clock source), then latch scene
   ld a,(beat_flash)
   or a
-  jr z,ct_noflash
+  jr z,ct_dolatch
   ld a,CLOCK_FLASH
   ld (sync_flash),a
-ct_noflash:
-  call mosh_step             ; beat kick: an extra corruption burst on the beat
+ct_dolatch:
   jp latch_scene
 
 ; Fast latch: palette / effect / movement (capture-instant, apply-on-tick).

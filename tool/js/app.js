@@ -18,8 +18,7 @@
     lastTs: 0,
     wobblePhase: 0,
     moshSpeed: 6,       // 0-15, matches the ROM's B1+left/right speed
-    moshAcc: 0,
-    lastRenderBeat: 0,
+    lastMoshTick: -1,   // tempo-locked corruption: last tick a step fired on
   };
 
   const $ = (id) => document.getElementById(id);
@@ -27,8 +26,6 @@
   const EFFECT_NAMES = ["NONE", "LAYOUT", "INVERT", "ROTATE", "FREEZE_LATCH", "WOBBLE", "BLANK",
     "MELT", "SCRAMBLE", "CHURN", "SMEAR", "MORPH", "XOR", "STAMP"];
   const MOVE_NAMES = ["STATIC", "CYCLE_FWD", "CYCLE_BACK", "WOBBLE_A", "WOBBLE_B"];
-  // matches the ROM speed_rate table (1/8-frame units, 16 levels; top ~255 passes)
-  const SPEED_RATE = [1, 2, 4, 8, 16, 32, 64, 128, 256, 448, 640, 896, 1216, 1536, 1800, 2040];
 
   // ---- baking ----
   function rebake(i) {
@@ -307,14 +304,15 @@
     // Corruption effects, mirroring the ROM. MELT(7)/CHURN(9) mutate a working
     // copy of the tile patterns; SCRAMBLE(8) toggles flip/palette-bank bits of
     // name-table cells. Copies rebuild clean when off or the scene changes.
-    // Corruption per frame: accumulate the speed rate (1/8-frame units), run
-    // floor(acc/8) passes this frame, with an extra kick on the beat.
-    const beatNow = Math.floor(clk.state.tick / CLK.BEAT);
-    ui.moshAcc += SPEED_RATE[ui.moshSpeed];
-    const passes = ui.moshAcc >> 3;
-    ui.moshAcc &= 7;
-    const kick = passes * (beatNow !== ui.lastRenderBeat ? 2 : 1);
-    ui.lastRenderBeat = beatNow;
+    // Tempo-locked: fire one corruption step every (16 - speed) ticks (kick 0/1),
+    // matching the ROM's clock_tick — effects evolve in musical time.
+    const tickNow = Math.floor(clk.state.tick);
+    const interval = 16 - ui.moshSpeed;          // 1 (fastest) .. 16 (slowest)
+    let kick = 0;
+    if (tickNow !== ui.lastMoshTick) {
+      ui.lastMoshTick = tickNow;
+      if (tickNow % interval === 0) kick = 1;
+    }
 
     let tilesForRender = b.tiles;
     let layoutForRender = b.layouts[layoutIdx];

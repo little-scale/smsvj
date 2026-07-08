@@ -64,8 +64,9 @@ are **16 tilesets and 16 (global) palettes**, paired 1:1 (importing a `.svjt` in
 tileset N drops its palette into palette slot N). Latches: palette/effect/movement on the
 **tick**, tileset on the **beat**. The **effect dial** is all corruption: down = SMEAR-D
 / STAMP / XOR / MORPH, centre = NONE, up = SCRAMBLE / SMEAR-H / SMEAR-V / CHURN.
-**Movement of 7**: slow/fast × up/down, two anti-phase wobbles, and none. **Speed** (0–15)
-scales how many corruption passes run per frame (16-bit rate table; top ≈ 255 passes/frame).
+**Movement of 7**: slow/fast × up/down, two anti-phase wobbles, and none. **Speed** (0–15) is
+the corruption's **tick interval** — one step fires every `16 − speed` ticks (1 tick = fastest,
+16 = slowest), so effects are tempo-locked like movement.
 Tempo-nudge dropped (tempo comes from Link/sync).
 
 **Sync source is explicit** (not auto): the **Pause button cycles OFF → IN → IN24**, shown
