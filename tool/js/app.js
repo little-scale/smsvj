@@ -19,7 +19,8 @@
     wobblePhase: 0,
     moshSpeed: 2,       // 0-4 -> ticks/step {16,8,4,2,1}; matches ROM B1+left/right
     lastMoshTick: -1,   // tempo-locked corruption: last tick a step fired on
-    moshStep: 0,        // step within the 16-step effect cycle
+    moshStep: 0,        // step within the 64-step effect cycle
+    lastFxType: -1,     // reset the cycle when the effect changes (matches ROM)
   };
 
   const $ = (id) => document.getElementById(id);
@@ -305,6 +306,11 @@
     // Corruption effects, mirroring the ROM. MELT(7)/CHURN(9) mutate a working
     // copy of the tile patterns; SCRAMBLE(8) toggles flip/palette-bank bits of
     // name-table cells. Copies rebuild clean when off or the scene changes.
+    // Changing effect restarts the cycle from clean (matches the ROM's recompose).
+    if (ui.lastFxType !== fx.type) {
+      ui.lastFxType = fx.type;
+      ui.moshTiles = null; ui.moshLayout = null; ui.moshStep = 0;
+    }
     // Tempo-locked: fire one step every mosh_ivals[speed] ticks; a 64-step cycle
     // then reset (rebuild the clean copy), matching the ROM's clock_tick.
     const MOSH_IVALS = [16, 8, 4, 2, 1];         // speed idx -> ticks/step (idx 4 = 1 tick)
