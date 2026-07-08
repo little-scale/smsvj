@@ -27,8 +27,8 @@
   const EFFECT_NAMES = ["NONE", "LAYOUT", "INVERT", "ROTATE", "FREEZE_LATCH", "WOBBLE", "BLANK",
     "MELT", "SCRAMBLE", "CHURN", "SMEAR", "MORPH", "XOR", "STAMP"];
   const MOVE_NAMES = ["STATIC", "CYCLE_FWD", "CYCLE_BACK", "WOBBLE_A", "WOBBLE_B"];
-  // matches the ROM speed_rate table (1/8-frame units, 16 clamped levels)
-  const SPEED_RATE = [1, 2, 4, 8, 16, 24, 32, 48, 64, 96, 128, 160, 192, 224, 240, 248];
+  // matches the ROM speed_rate table (1/8-frame units, 16 levels; top ~255 passes)
+  const SPEED_RATE = [1, 2, 4, 8, 16, 32, 64, 128, 256, 448, 640, 896, 1216, 1536, 1800, 2040];
 
   // ---- baking ----
   function rebake(i) {

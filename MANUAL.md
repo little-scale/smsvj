@@ -50,8 +50,9 @@ Movement, Tileset — mirror the controller-1 grammar; click a value to arm it (
 on the next boundary while playing, or applies instantly when stopped).
 
 - **▶ Play / ⏸** and **BPM / Region** (header) drive the clock.
-- **Colour freeze (pause)** — hold the current colours (the console's Pause button).
-- **Speed −/+** — corruption passes per frame (0–15).
+- **Colour freeze** — hold the current colours (a preview aid; on the console the Pause
+  button now cycles the sync source instead).
+- **Speed −/+** — corruption passes per frame (0–15; wide range, up to a hard churn).
 - **auto palette / effect / movement** — advance that axis every beat (for hands-off preview).
 
 ### Palettes & axes (right)
@@ -201,7 +202,7 @@ D-pad picks the value. Changes latch on the next musical boundary.
 | **B1+B2 + ← / →** | Tileset — of 16; palette stays | beat |
 | **B1+B2 + ↑ / ↓** | Palette — of 16; tileset stays | tick |
 | **B2 tap** (alone) | Overlay show / hide | on release |
-| **Pause** (console button) | Colour freeze — hold current colours (toggle) | instant |
+| **Pause** (console button) | Cycle sync source: OFF → IN → IN24 (shows the mode ~2 s) | instant |
 
 Palette and tileset are **independent** — the B1+B2 combo mixes them. **Movement of 7:**
 slow up / slow down / fast up / fast down / wobble A / wobble B / none. **Effect dial** is

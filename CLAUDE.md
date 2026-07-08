@@ -56,7 +56,7 @@ Each button owns a theme — B1 = effect, B2 = look, B1+B2 = source:
 | B1+B2 + ←/→ | **tileset** (of 16) — palette stays | beat |
 | B1+B2 + ↑/↓ | **palette** (of 16) — tileset stays | tick |
 | B2 tap (alone) | overlay show/hide | instant (on release) |
-| **Pause button** (NMI) | colour freeze — hold the current colours (toggle) | instant |
+| **Pause button** (NMI) | cycle sync source: OFF → IN → IN24 (shows the mode ~2 s) | instant |
 
 **Palette and tileset are independent** (no "bank"): the B1+B2 combo mixes them — ←/→
 swaps the tileset keeping the palette, ↑/↓ swaps the palette keeping the tileset. There
@@ -65,8 +65,12 @@ tileset N drops its palette into palette slot N). Latches: palette/effect/moveme
 **tick**, tileset on the **beat**. The **effect dial** is all corruption: down = SMEAR-D
 / STAMP / XOR / MORPH, centre = NONE, up = SCRAMBLE / SMEAR-H / SMEAR-V / CHURN.
 **Movement of 7**: slow/fast × up/down, two anti-phase wobbles, and none. **Speed** (0–15)
-scales how many corruption passes run per frame. Tempo-nudge dropped (tempo comes from
-Link/sync).
+scales how many corruption passes run per frame (16-bit rate table; top ≈ 255 passes/frame).
+Tempo-nudge dropped (tempo comes from Link/sync).
+
+**Sync source is explicit** (not auto): the **Pause button cycles OFF → IN → IN24**, shown
+briefly on-screen. Boot shows the version then the git build id (~2 s each). Colour freeze
+was dropped to free the Pause button.
 
 Edge-detect the D-pad (release before it steps again). B2 disambiguates tap-vs-hold on
 release: if any D-pad/B1 happened during the hold it was a modifier and the tap is
@@ -74,16 +78,17 @@ swallowed; otherwise it toggles the overlay.
 
 ## Clock sources
 
-One internal tick, source-selected, auto-falling-back to INT when an external source
-goes quiet:
+One internal tick, source selected explicitly by the **Pause button** (OFF → IN → IN24):
 
-- **INT** — frames/beat from the bank's `default_bpm` + region; fractional remainder
-  accumulated to stay phase-true to the display. Adjustable by tempo-nudge.
-- **IN** — 2-bit counter, another SMS pushing OUT; 1 edge/row = 1 tick.
-- **IN24** — 24 PPQN Link/bridge; ÷6 → tick, ÷24 → beat.
+- **OFF (INT)** — frames/beat from the bank's `default_bpm` + region; fractional remainder
+  accumulated to stay phase-true to the display.
+- **IN** — 2-bit counter, another SMS (SMSGGDJ / genmddj) pushing SYNC OUT; 1 clock/row = 1
+  tick (÷1). Border flashes on the beat while slaved.
+- **IN24** — 24 PPQN Link/bridge (ESP32); ÷6 → tick, ÷24 → beat.
 
-Sync lives on **controller port 2** (TR = bit0, TH = bit1); see SMSGGDJ's `HARDWARE.md`
-for the electrical contract — it's identical, and the SYNC IN reader can be reused.
+Sync lives on **controller port 2** (`$DD`: TR bit3, TL bit2, TH bit7; counter bit0 =
+TR AND TL so straight and crossed cables both work). The SMSGGDJ SYNC IN reader is reused
+verbatim; see SMSGGDJ's `HARDWARE.md` for the electrical contract — it's identical.
 
 ## Build targets
 

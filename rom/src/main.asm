@@ -141,27 +141,40 @@ ml_notext:
 ml_texthide:
   call text_hide
 ml_nooverlay:
-  ; per-frame corruption (B1+left/right = speed). speed_rate is in 1/8-frame
-  ; units; accumulate and run floor(acc/8) passes, keeping the remainder so slow
-  ; speeds fire only every few frames.
+  ; per-frame corruption (B1+left/right = speed). speed_rate is a 16-bit rate in
+  ; 1/8-frame units: acc += rate; passes = acc>>3 (capped 255); keep the low 3
+  ; bits so slow speeds fire sparsely and the top speed can churn hard.
   ld a,(mosh_speed)
+  add a,a                     ; *2 (word index)
   ld e,a
   ld d,0
   ld hl,speed_rate
   add hl,de
-  ld a,(hl)                   ; rate (<=248)
-  ld hl,mosh_acc
-  add a,(hl)                  ; acc + rate (no 8-bit overflow: acc<8)
-  ld b,a
+  ld e,(hl)
+  inc hl
+  ld d,(hl)                   ; DE = rate (16-bit)
+  ld hl,(mosh_acc)
+  add hl,de                   ; HL = acc + rate
+  ld a,l
   and 7
-  ld (hl),a                   ; new fractional remainder
-  ld a,b
-  srl a
-  srl a
-  srl a                       ; passes = (acc + rate) >> 3
-  ld b,a
+  ld (mosh_acc),a             ; remainder (<8) -> low byte
+  xor a
+  ld (mosh_acc+1),a           ; high byte 0
+  srl h
+  rr l
+  srl h
+  rr l
+  srl h
+  rr l                        ; HL = passes = (acc + rate) >> 3
+  ld a,h
+  or a
+  jr z,ml_pcap
+  ld l,255                    ; cap at 255 passes/frame
+ml_pcap:
+  ld a,l
   or a
   jr z,ml_done                ; nothing this frame
+  ld b,a
 ml_run:
   push bc
   call mosh_step
@@ -170,8 +183,9 @@ ml_run:
 ml_done:
   jp main_loop
 
+; 16 levels, 1/8-frame units (16-bit). Top ~255 passes/frame vs the old ~31.
 speed_rate:
-.db 1, 2, 4, 8, 16, 24, 32, 48, 64, 96, 128, 160, 192, 224, 240, 248
+.dw 1, 2, 4, 8, 16, 32, 64, 128, 256, 448, 640, 896, 1216, 1536, 1800, 2040
 
 ; Draw the current sync mode overlay ("SYNC OFF/IN/24") for TEXT_FRAMES.
 show_sync_text:

@@ -42,7 +42,8 @@ bank_init:
   ld (mv_phase),a
   ld (tiles_dirty),a
   ld (layout_dirty),a
-  ld (mosh_acc),a             ; a = 0
+  ld (mosh_acc),a             ; a = 0 (clear both bytes of the 16-bit acc)
+  ld (mosh_acc+1),a
   ld a,6
   ld (mosh_speed),a           ; default speed (mid of 0-15)
   ld hl,$ACE1                 ; nonzero LFSR seed
