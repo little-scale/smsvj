@@ -17,8 +17,9 @@
     lastBeat: 0,
     lastTs: 0,
     wobblePhase: 0,
-    moshSpeed: 6,       // 0-15, matches the ROM's B1+left/right speed
+    moshSpeed: 2,       // 0-4 -> ticks/step {16,8,4,2,1}; matches ROM B1+left/right
     lastMoshTick: -1,   // tempo-locked corruption: last tick a step fired on
+    moshStep: 0,        // step within the 16-step effect cycle
   };
 
   const $ = (id) => document.getElementById(id);
@@ -304,14 +305,19 @@
     // Corruption effects, mirroring the ROM. MELT(7)/CHURN(9) mutate a working
     // copy of the tile patterns; SCRAMBLE(8) toggles flip/palette-bank bits of
     // name-table cells. Copies rebuild clean when off or the scene changes.
-    // Tempo-locked: fire one corruption step every (16 - speed) ticks (kick 0/1),
-    // matching the ROM's clock_tick — effects evolve in musical time.
+    // Tempo-locked: fire one step every mosh_ivals[speed] ticks; a 16-step cycle
+    // then reset (rebuild the clean copy), matching the ROM's clock_tick.
+    const MOSH_IVALS = [16, 8, 4, 2, 1];         // speed idx -> ticks/step (idx 4 = 1 tick)
     const tickNow = Math.floor(clk.state.tick);
-    const interval = 16 - ui.moshSpeed;          // 1 (fastest) .. 16 (slowest)
+    const interval = MOSH_IVALS[ui.moshSpeed] || 4;
     let kick = 0;
     if (tickNow !== ui.lastMoshTick) {
       ui.lastMoshTick = tickNow;
-      if (tickNow % interval === 0) kick = 1;
+      if (tickNow % interval === 0) {
+        kick = 1;
+        ui.moshStep = (ui.moshStep + 1) & 15;
+        if (ui.moshStep === 0) { ui.moshTiles = null; ui.moshLayout = null; } // 16-step reset
+      }
     }
 
     let tilesForRender = b.tiles;
@@ -526,7 +532,8 @@
     $("freeze").classList.toggle("on", ui.freeze);
   };
 
-  function setSpeed(v) { ui.moshSpeed = Math.max(0, Math.min(15, v)); $("spdVal").textContent = ui.moshSpeed; }
+  const MOSH_TICKS = [16, 8, 4, 2, 1];
+  function setSpeed(v) { ui.moshSpeed = Math.max(0, Math.min(4, v)); $("spdVal").textContent = MOSH_TICKS[ui.moshSpeed] + "t"; }
   $("spdUp").onclick = () => setSpeed(ui.moshSpeed + 1);
   $("spdDn").onclick = () => setSpeed(ui.moshSpeed - 1);
 
@@ -737,7 +744,7 @@
   // ---- init ----
   function init() {
     $("bpm").value = bank.default_bpm;
-    $("spdVal").textContent = ui.moshSpeed;
+    $("spdVal").textContent = MOSH_TICKS[ui.moshSpeed] + "t";
     $("sceneSel").innerHTML = bank.scenes.map((s, i) => `<option>${i}</option>`).join("");
     $("palSel").innerHTML = bank.scenes.map((s, i) => `<option>${i}</option>`).join(""); // 16 palettes, paired with tilesets
     buildGeneratorControls();

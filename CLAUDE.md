@@ -51,7 +51,7 @@ Each button owns a theme — B1 = effect, B2 = look, B1+B2 = source:
 | input | action | latch |
 |---|---|---|
 | B1 + ↑/↓ | **effect dial** (of 9: NONE centre, 4 glitch up, 4 glitch down) | tick |
-| B1 + ←/→ | **effect speed** (0–15, clamped — no wrap) | instant |
+| B1 + ←/→ | **effect speed** — ticks/step 1·2·4·8·16 (right = 1 tick, fastest) | instant |
 | B2 + ↑/↓ | movement (of 7) | tick |
 | B1+B2 + ←/→ | **tileset** (of 16) — palette stays | beat |
 | B1+B2 + ↑/↓ | **palette** (of 16) — tileset stays | tick |
@@ -64,9 +64,10 @@ are **16 tilesets and 16 (global) palettes**, paired 1:1 (importing a `.svjt` in
 tileset N drops its palette into palette slot N). Latches: palette/effect/movement on the
 **tick**, tileset on the **beat**. The **effect dial** is all corruption: down = SMEAR-D
 / STAMP / XOR / MORPH, centre = NONE, up = SCRAMBLE / SMEAR-H / SMEAR-V / CHURN.
-**Movement of 7**: slow/fast × up/down, two anti-phase wobbles, and none. **Speed** (0–15) is
-the corruption's **tick interval** — one step fires every `16 − speed` ticks (1 tick = fastest,
-16 = slowest), so effects are tempo-locked like movement.
+**Movement of 7**: slow/fast × up/down, two anti-phase wobbles, and none. **Speed** picks the
+corruption's **ticks/step** from `1·2·4·8·16` (B1+→ = 1 tick). Each effect runs a **16-step
+cycle** then the resettable ones reload clean — so a full loop is `16 × step` ticks = 1, 2, 4,
+8, or 16 bars, always bar-aligned and tempo-locked.
 Tempo-nudge dropped (tempo comes from Link/sync).
 
 **Sync source is explicit** (not auto): the **Pause button cycles OFF → IN → IN24**, shown

@@ -145,14 +145,23 @@ clock_tick:
   ld hl,(tick_lo)
   inc hl
   ld (tick_lo),hl
-  ; --- corruption: one step every (16 - mosh_speed) ticks (1..16), tempo-locked ---
+  ; --- corruption: one step every mosh_ivals[speed] ticks; a 16-step cycle then
+  ; reset (resettable effects reload clean), so effects loop over 1..16 bars ---
   ld a,(mosh_tickcnt)
   dec a
   jr nz,ct_moshset
   call mosh_step
-  ld a,16
-  ld hl,mosh_speed
-  sub (hl)                   ; interval = 16 - speed (speed 15 -> 1 tick, 0 -> 16)
+  ld a,(mosh_stepcnt)
+  inc a
+  and 15
+  ld (mosh_stepcnt),a
+  call z,mosh_reset          ; wrapped 15->0 after 16 steps: reset the cycle
+  ld a,(mosh_speed)          ; reload the tick interval for this speed
+  ld e,a
+  ld d,0
+  ld hl,mosh_ivals
+  add hl,de
+  ld a,(hl)
 ct_moshset:
   ld (mosh_tickcnt),a
   ; --- movement down-counter (skip while STATIC) ---
@@ -227,4 +236,8 @@ latch_scene:
   ld a,(mv_div)
   ld (mv_count),a
   jp recompose
+
+; ticks/step by speed index 0-4 (B1 left..right). Rightmost (idx 4) = 1 tick.
+mosh_ivals:
+.db 16, 8, 4, 2, 1
 .ENDS

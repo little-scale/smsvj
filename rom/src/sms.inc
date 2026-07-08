@@ -120,8 +120,9 @@ tile_count      db          ; current scene tile count (SCRAMBLE index range)
 mosh_mask       db          ; (2^n)-1 covering tile_count (random-index masking)
 tiles_dirty     db          ; VRAM pattern data has been corrupted (MELT/CHURN)
 layout_dirty    db          ; VRAM name table has been scrambled (SCRAMBLE/SMEAR)
-mosh_speed      db          ; corruption speed 0-15 -> fires every (16-speed) ticks
+mosh_speed      db          ; speed 0-4 -> ticks/step {16,8,4,2,1} (idx into mosh_ivals)
 mosh_tickcnt    db          ; ticks until the next corruption step (down-counter)
+mosh_stepcnt    db          ; step within the 16-step effect cycle (reset at 16)
 fx_type         db          ; decoded active effect record
 fx_p0           db
 fx_p1           db

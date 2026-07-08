@@ -42,10 +42,11 @@ bank_init:
   ld (mv_phase),a
   ld (tiles_dirty),a
   ld (layout_dirty),a
+  ld (mosh_stepcnt),a         ; a = 0: start of the 16-step cycle
   ld a,1
   ld (mosh_tickcnt),a         ; fire corruption on the next tick
-  ld a,6
-  ld (mosh_speed),a           ; default speed (mid of 0-15)
+  ld a,2
+  ld (mosh_speed),a           ; default speed idx 2 -> 4 ticks/step
   ld hl,$ACE1                 ; nonzero LFSR seed
   ld (lfsr),hl
   ; SYNC: boot in OFF (internal clock); seed the counter for a clean IN switch
@@ -229,6 +230,10 @@ palette_reload_live:
 ; Recompose CRAM = palette cur_pal, then apply the sticky effect on top.
 recompose:
   call read_effect_record     ; decode current effect -> fx_type first
+  xor a
+  ld (mosh_stepcnt),a         ; a fresh effect/palette starts the 16-step cycle
+  inc a
+  ld (mosh_tickcnt),a
   ; restore tiles if moshed and no longer a pattern-mosh (CHURN 9 / XOR 12 / STAMP 13)
   ld a,(tiles_dirty)
   or a
@@ -1032,6 +1037,31 @@ stm_copy:
   ret
 
 ; Dispatch the active corruption effect's per-tick step (also used as a beat kick).
+; End-of-cycle reset (every 16 steps): reload the clean VRAM the active effect
+; corrupts, so tile-corruptors (MELT/CHURN/XOR/STAMP) and layout-corruptors
+; (SCRAMBLE/SMEAR/MORPH) loop instead of dissolving forever. NONE = nothing.
+mosh_reset:
+  ld a,(fx_type)
+  cp 8
+  jr z,mr_layout             ; SCRAMBLE
+  cp 10
+  jr z,mr_layout             ; SMEAR
+  cp 11
+  jr z,mr_layout             ; MORPH
+  cp 7
+  jr z,mr_tiles              ; MELT
+  cp 9
+  jr z,mr_tiles              ; CHURN
+  cp 12
+  jr z,mr_tiles              ; XOR
+  cp 13
+  jr z,mr_tiles              ; STAMP
+  ret
+mr_tiles:
+  jp tiles_reload
+mr_layout:
+  jp layout_reload
+
 mosh_step:
   ld a,(fx_type)
   cp 7

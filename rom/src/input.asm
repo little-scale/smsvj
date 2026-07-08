@@ -181,10 +181,10 @@ nudge_fx_down:
   ld (pend_fx),a
   ret
 
-; Effect speed: clamp mosh_speed to 0..15 (instant, no wrap).
+; Effect speed: idx 0-4 into ticks/step {16,8,4,2,1}. Right (up) = faster (1 tick).
 speed_up:
   ld a,(mosh_speed)
-  cp 15
+  cp 4
   ret z
   inc a
   ld (mosh_speed),a

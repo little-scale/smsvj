@@ -52,7 +52,7 @@ on the next boundary while playing, or applies instantly when stopped).
 - **▶ Play / ⏸** and **BPM / Region** (header) drive the clock.
 - **Colour freeze** — hold the current colours (a preview aid; on the console the Pause
   button now cycles the sync source instead).
-- **Speed −/+** — corruption tick interval (0–15 → one step every 16−speed ticks; tempo-locked).
+- **Speed −/+** — corruption ticks/step (1·2·4·8·16); each effect runs a 16-step cycle then resets.
 - **auto palette / effect / movement** — advance that axis every beat (for hands-off preview).
 
 ### Palettes & axes (right)
@@ -197,7 +197,7 @@ D-pad picks the value. Changes latch on the next musical boundary.
 | Input | Action | Latch |
 |---|---|---|
 | **B1 + ↑ / ↓** | Effect dial — 9 steps: `NONE` centre, 4 glitch up, 4 down | tick |
-| **B1 + ← / →** | Effect speed — 0–15, clamped | instant |
+| **B1 + ← / →** | Effect speed — ticks/step 1·2·4·8·16 (right = 1 tick) | instant |
 | **B2 + ↑ / ↓** | Movement — 7 options | tick |
 | **B1+B2 + ← / →** | Tileset — of 16; palette stays | beat |
 | **B1+B2 + ↑ / ↓** | Palette — of 16; tileset stays | tick |
