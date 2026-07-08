@@ -48,42 +48,7 @@
         <label>Cell <b id="vCell" class="mono"></b><input id="genCell" type="range" min="8" max="32" step="2" /></label>
       </div>
       <div class="row"><button id="genRandom">🎲 Randomize</button><span class="hint" id="tileBudgetHint"></span></div>
-
-      <details class="romimp" id="romImp">
-        <summary>Import tiles from a ROM</summary>
-        <div class="row">
-          <label class="filebtn">Choose / drop .sms · .gg
-            <input type="file" id="romFile" accept=".sms,.gg,.bin,.rom" />
-          </label>
-          <span class="hint" id="romInfo">no ROM loaded</span>
-        </div>
-        <label class="romofflbl">Offset <b id="vRomOff" class="mono">0x0</b>
-          <input id="romOff" type="range" min="0" max="0" step="32" value="0" disabled />
-        </label>
-        <label class="romofflbl">Phase <b id="vRomPhase" class="mono">0</b>
-          <input id="romPhase" type="range" min="0" max="255" step="1" value="0" disabled />
-        </label>
-        <div class="row"><label>Decode <select id="romFmt"></select></label>
-          <button id="romFind" disabled>Find ▸</button></div>
-        <canvas id="romSheet" class="pixelcanvas romsheet"></canvas>
-        <div class="row">
-          <span class="hint" id="romSel">drop a ROM, then drag to select a tile block</span>
-          <button id="romFill" disabled>Fill source ▸</button>
-        </div>
-        <div class="rompal">
-          <div class="cram" id="romPalStrip"></div>
-          <div class="row">
-            <button id="romPalScan" disabled>Find palettes</button>
-            <label class="chk"><input type="checkbox" id="romPalGG" /> 12-bit (GG)</label>
-            <button id="romPalUse" disabled>Use palette ▸</button>
-          </div>
-          <p class="hint" id="romPalInfo">Colours at the current offset. “Find palettes” jumps to the
-            next 32-byte run that looks like CRAM; “Use palette” writes it to the edit palette.</p>
-        </div>
-        <p class="hint">Reads raw Mode 4 tiles — only <em>uncompressed</em> graphics show; scrub
-          the offset until real tiles appear. The selected block tiles across the whole source
-          (folded in quarter mode). Colour it afterwards with the palette tools.</p>
-      </details>
+      <p class="hint">Ripping tiles from a ROM lives in the <a class="backlink" href="studio.html">tile studio</a> — compose there, then Import source here.</p>
 
       <canvas id="authCanvas" class="pixelcanvas"></canvas>
       <div class="draw-swatches" id="drawSwatches"></div>
@@ -153,7 +118,6 @@
   <script src="js/fold.js"></script>
   <script src="js/generators.js"></script>
   <script src="js/palgen.js"></script>
-  <script src="js/romdecode.js"></script>
   <script src="js/svjb.js"></script>
   <script src="js/scene.js"></script>
   <script src="js/render.js"></script>
