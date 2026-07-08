@@ -51,8 +51,7 @@ div16_8:
 ; clock per row = one tick, /1). Reuses SMSGGDJ's reader verbatim. When sync
 ; clocks arrive we tick from them and flash the border; after CLOCK_SYNC_IDLE
 ; quiet frames we fall back to the INT accumulator.
-.DEFINE CLOCK_SYNC_IDLE 90     ; ~1.5 s @60Hz with no clock -> INT
-.DEFINE CLOCK_FLASH     3      ; border-flash frames per received clock
+.DEFINE CLOCK_FLASH     3      ; border-flash frames on a sync beat
 
 ; Read the master's counter: B = TH<<1 | (TR AND TL). Counter bit 0 is TR AND TL
 ; so straight and crossed cables both work. $DD: bit3=TR, bit2=TL, bit7=TH.
@@ -81,33 +80,54 @@ sync_in_delta:
   and 3
   ret
 
-; Per-frame clock entry: sync when present, else INT. Sets sync_flash on a clock.
+; Per-frame clock entry, dispatched on sync_mode:
+;   OFF  -> internal accumulator (clock_update)
+;   IN   -> follow the port-2 counter, one clock = one tick (÷1)
+;   IN24 -> follow a 24-PPQN sender, one tick per 6 clocks (÷6)
+; Slaves flash the border on the beat and hold (no ticks) while no clock arrives.
 clock_frame:
-  call sync_in_delta         ; A = clocks this frame
+  ld a,(sync_mode)
   or a
-  jr z,cf_none
-  ld b,a                     ; tick B times
-  xor a
-  ld (sync_idle),a
-cf_tick:
+  jp z,clock_update          ; SYNC_OFF
+  call sync_in_delta         ; A = clocks this frame (0-3)
+  or a
+  ret z                      ; slave, no clock yet: hold
+  ld c,a
+  ld a,(sync_mode)
+  cp SYNC_IN24
+  jr z,cf_in24
+cf_in:                       ; ÷1: tick C times
+  ld b,c
+cf_in_l:
   push bc
+  call sync_tick
+  pop bc
+  djnz cf_in_l
+  ret
+cf_in24:                     ; ÷6: accumulate, tick each 6 clocks
+  ld a,(sync_acc6)
+  add a,c
+cf_in24_l:
+  cp 6
+  jr c,cf_in24_done
+  sub 6
+  push af
+  call sync_tick
+  pop af
+  jr cf_in24_l
+cf_in24_done:
+  ld (sync_acc6),a
+  ret
+
+; One sync-driven tick, flashing the border on the beat (every 4th tick).
+sync_tick:
   call clock_tick
-  ld a,(tick_lo)             ; flash on the beat only (every 4th tick)
+  ld a,(tick_lo)
   and 3
-  jr nz,cf_nobeat
+  ret nz
   ld a,CLOCK_FLASH
   ld (sync_flash),a
-cf_nobeat:
-  pop bc
-  djnz cf_tick
   ret
-cf_none:
-  ld a,(sync_idle)
-  cp CLOCK_SYNC_IDLE
-  jr nc,clock_update         ; sync lost -> INT clock
-  inc a
-  ld (sync_idle),a
-  ret                        ; recently synced: wait for the next clock
 
 ; Called once per frame: acc += 1.0, and emit a tick when acc >= fpt.
 clock_update:

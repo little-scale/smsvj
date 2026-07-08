@@ -103,6 +103,101 @@ cram_upload_live:
   djnz -
   ret
 
+; ---- font + on-screen text (sprites) --------------------------------------
+; The font (assets/font.bin, 64 Mode-4 tiles) loads to VRAM $1800 = tile $C0;
+; a glyph's sprite tile number is (ASCII char + $A0). Text is drawn as a single
+; centred row of hardware sprites overlaid on the visual, so it never disturbs
+; the name table. reg6 = $FB -> sprite pattern base $0000, so sprite tile N = VRAM tile N.
+load_font:
+  ld hl,FONT_VTILE
+  ld de,font_data
+  ld bc,2048                 ; 64 tiles x 32 bytes
+  jp copy_to_vram
+
+; Draw HL (0-terminated string, chars $20-$5F) as a centred sprite row at TEXT_Y.
+; Capped at 8 glyphs (SMS 8-sprites-per-line limit). Clobbers AF/BC/DE/HL.
+text_draw:
+  ld b,0                     ; measure length (cap 8)
+  push hl
+td_len:
+  ld a,(hl)
+  or a
+  jr z,td_have
+  inc hl
+  inc b
+  ld a,b
+  cp 8
+  jr c,td_len
+td_have:
+  pop hl                     ; HL = string, B = len
+  ld a,b
+  add a,a
+  add a,a                    ; len*4
+  ld c,a
+  ld a,128
+  sub c
+  ld d,a                     ; D = start X (centred)
+  ; --- Y table at SAT $3F00 (write addr $7F00) ---
+  ld a,$00
+  out (VDP_CTRL),a
+  ld a,$7F
+  out (VDP_CTRL),a
+  push bc
+  push hl
+  ld a,b
+  or a
+  jr z,td_yend
+td_y:
+  ld a,TEXT_Y
+  out (VDP_DATA),a
+  dec b
+  jr nz,td_y
+td_yend:
+  ld a,$D0                   ; terminator after the last sprite
+  out (VDP_DATA),a
+  pop hl
+  pop bc
+  ; --- X + tile table at $3F80 (write addr $7F80) ---
+  ld a,$80
+  out (VDP_CTRL),a
+  ld a,$7F
+  out (VDP_CTRL),a
+td_x:
+  ld a,b
+  or a
+  ret z
+  ld a,d
+  out (VDP_DATA),a           ; X
+  add a,8
+  ld d,a
+  ld a,(hl)
+  add a,FONT_TILEBASE        ; char -> tile number
+  out (VDP_DATA),a           ; tile
+  inc hl
+  dec b
+  jr td_x
+
+; Hide the text overlay: sprite 0 Y = $D0 terminates the SAT.
+text_hide:
+  ld a,$00
+  out (VDP_CTRL),a
+  ld a,$7F
+  out (VDP_CTRL),a
+  ld a,$D0
+  out (VDP_DATA),a
+  ret
+
+; A = colour -> CRAM entry 17 (the sprite ink the text glyphs use).
+set_text_ink:
+  ld c,a
+  ld a,17
+  out (VDP_CTRL),a
+  ld a,$C0
+  out (VDP_CTRL),a
+  ld a,c
+  out (VDP_DATA),a
+  ret
+
 vdp_init_tab:
 .db $04,$80    ; r0  mode 4, line int off
 .db $80,$81    ; r1  display OFF, 8x8 sprites
@@ -110,7 +205,7 @@ vdp_init_tab:
 .db $FF,$83    ; r3
 .db $FF,$84    ; r4
 .db $FF,$85    ; r5  SAT base $3F00
-.db $FB,$86    ; r6  sprite pattern base $2000
+.db $FB,$86    ; r6  sprite pattern base $0000 (bit2 clear)
 .db $00,$87    ; r7  backdrop = CRAM entry 0
 .db $00,$88    ; r8  hscroll
 .db $00,$89    ; r9  vscroll

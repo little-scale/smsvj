@@ -5,8 +5,13 @@ OBJ     := build/main.o
 LINK    := build/link.tmp
 SRCS    := $(wildcard src/*.asm src/*.inc)
 ASSET   := assets/look.svjb
+FONT    := assets/font.bin
 
 all: $(ROM)
+
+# On-screen text font (ASCII $20-$5F as Mode 4 tiles).
+$(FONT):
+	python3 ../tools/makefont.py $@
 
 # Regenerate the embedded scene bank from the browser emitter.
 # ROM_SCENES = scenes embedded in the paged 96 KB ROM (4 banks of 4 = 16).
@@ -15,7 +20,7 @@ ROM_SCENES ?= 16
 $(ASSET):
 	node ../tool/export-bank.js $@ $(ROM_SCENES)
 
-$(ROM): $(MAIN) $(SRCS) $(ASSET)
+$(ROM): $(MAIN) $(SRCS) $(ASSET) $(FONT)
 	@mkdir -p build
 	wla-z80 -I src -o $(OBJ) $(MAIN)
 	@printf '[objects]\n$(OBJ)\n' > $(LINK)

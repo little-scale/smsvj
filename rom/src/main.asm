@@ -28,10 +28,26 @@
 
 .ORG $0066
 .SECTION "nmi" FORCE
+  ; Pause button cycles the sync source: OFF -> IN -> IN24 -> OFF. Re-seeds the
+  ; counter so switching into a slave mode doesn't burst a stale delta, and flags
+  ; the main loop to draw the SYNC overlay.
   push af
-  ld a,(freeze)
-  xor 1
-  ld (freeze),a               ; pause button toggles the colour freeze
+  push bc
+  ld a,(sync_mode)
+  inc a
+  cp SYNC_MODES
+  jr c,nmi_set
+  xor a
+nmi_set:
+  ld (sync_mode),a
+  call sync_read              ; latch the current counter as the new baseline
+  ld a,b
+  ld (sync_last),a
+  xor a
+  ld (sync_acc6),a
+  inc a
+  ld (sync_pending),a         ; main loop shows the mode
+  pop bc
   pop af
   retn
 .ENDS
@@ -49,11 +65,17 @@ boot:
   ld a,DATA_BANK0
   ld (SLOT2_CTRL),a
   call vdp_init               ; registers (screen off), clear VRAM/CRAM
+  call load_font              ; text font -> VRAM tile $C0
   call bank_init              ; parse header, timing, load boot scene
   ; enable display + frame interrupt (reg1 = %11100000)
   ld a,$E0
   ld b,$81
   call vdp_reg
+  ; show the version for ~2 s over the opening visual
+  ld hl,str_version
+  call text_draw
+  ld a,TEXT_FRAMES
+  ld (text_timer),a
 main_loop:
   ei
   halt                        ; wait for VBlank
@@ -82,6 +104,27 @@ ml_flashset:
   pop af
   out ($BE),a
 ml_noflash:
+  ; sync mode changed by the Pause button? draw the SYNC overlay
+  ld a,(sync_pending)
+  or a
+  jr z,ml_notext
+  xor a
+  ld (sync_pending),a
+  call show_sync_text
+ml_notext:
+  ; text overlay timer: hold the glyphs' ink white while showing, hide at 0
+  ld a,(text_timer)
+  or a
+  jr z,ml_nooverlay
+  dec a
+  ld (text_timer),a
+  ld a,$3F
+  call set_text_ink           ; CRAM 17 = white so the text reads over any palette
+  ld a,(text_timer)
+  or a
+  jr nz,ml_nooverlay
+  call text_hide
+ml_nooverlay:
   ; per-frame corruption (B1+left/right = speed). speed_rate is in 1/8-frame
   ; units; accumulate and run floor(acc/8) passes, keeping the remainder so slow
   ; speeds fire only every few frames.
@@ -113,6 +156,35 @@ ml_done:
 
 speed_rate:
 .db 1, 2, 4, 8, 16, 24, 32, 48, 64, 96, 128, 160, 192, 224, 240, 248
+
+; Draw the current sync mode overlay ("SYNC OFF/IN/24") for TEXT_FRAMES.
+show_sync_text:
+  ld a,(sync_mode)
+  cp SYNC_IN
+  jr z,sst_in
+  cp SYNC_IN24
+  jr z,sst_in24
+  ld hl,str_sync_off
+  jr sst_draw
+sst_in:
+  ld hl,str_sync_in
+  jr sst_draw
+sst_in24:
+  ld hl,str_sync_in24
+sst_draw:
+  call text_draw
+  ld a,TEXT_FRAMES
+  ld (text_timer),a
+  ret
+
+str_version:   .db "V0.1",0
+str_sync_off:  .db "SYNC OFF",0
+str_sync_in:   .db "SYNC IN",0
+str_sync_in24: .db "SYNC 24",0
+
+; text font (64 Mode-4 tiles) -> VRAM tile $C0 by load_font
+font_data:
+.INCBIN "assets/font.bin"
 .ENDS
 
 .INCLUDE "vdp.asm"

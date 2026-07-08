@@ -30,6 +30,16 @@ BANKS 6
 ; ---- VDP / IO ports -------------------------------------------------------
 .DEFINE VDP_DATA    $BE
 .DEFINE VDP_CTRL    $BF
+
+; ---- sync + on-screen text ------------------------------------------------
+.DEFINE SYNC_OFF    0         ; internal clock
+.DEFINE SYNC_IN     1         ; follow an SMSGGDJ SYNC OUT (÷1)
+.DEFINE SYNC_IN24   2         ; follow a 24-PPQN sender (ESP32 clock, ÷6)
+.DEFINE SYNC_MODES  3
+.DEFINE FONT_VTILE  $1800     ; font -> VRAM tile $C0; sprite tile = char + $A0
+.DEFINE FONT_TILEBASE $A0     ; sprite tile number = ASCII char + this ($20 -> $C0)
+.DEFINE TEXT_FRAMES 120       ; ~2 s overlay @60Hz
+.DEFINE TEXT_Y      20        ; overlay sprite row (near the top)
 .DEFINE PORT_PAD1   $DC     ; controller 1: bits active-low
 .DEFINE PSG_PORT    $7F
 
@@ -116,8 +126,11 @@ fx_type         db          ; decoded active effect record
 fx_p0           db
 fx_p1           db
 fx_p2           db
-sync_last       db          ; SYNC IN: 2-bit counter value read last frame
-sync_idle       db          ; frames since the last sync clock (INT fallback)
-sync_flash      db          ; border-flash countdown on a received sync clock
+sync_mode       db          ; SYNC OFF / IN / IN24 (cycled by the Pause button)
+sync_last       db          ; 2-bit counter value read last frame
+sync_acc6       db          ; IN24: received clocks accumulated toward a tick (÷6)
+sync_flash      db          ; border-flash countdown on a sync beat
+text_timer      db          ; version / sync-mode overlay countdown (frames)
+sync_pending    db          ; NMI -> main: sync mode changed, draw the overlay
 live_pal        dsb 32      ; live 32-entry CRAM shadow (CRAM isn't readable)
 .ENDE
