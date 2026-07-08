@@ -60,7 +60,28 @@ main_loop:
   xor a
   ld (frame_ready),a
   call read_input             ; controller 1 -> pending nudges (capture-instant)
-  call clock_update           ; advance accumulator -> ticks, latch on boundaries
+  call clock_frame            ; SYNC IN if present, else INT -> ticks + latches
+  ; SYNC IN indicator: flash the border (CRAM entry 16) white for a few frames on
+  ; each received clock, so a hardware sync feed is visible at a glance.
+  ld a,(sync_flash)
+  or a
+  jr z,ml_noflash
+  dec a
+  ld (sync_flash),a
+  jr nz,ml_flashon
+  xor a                       ; countdown done: restore backdrop (black)
+  jr ml_flashset
+ml_flashon:
+  ld a,$3F                    ; white
+ml_flashset:
+  push af
+  ld a,16
+  out ($BF),a
+  ld a,$C0
+  out ($BF),a                 ; VDP addr = CRAM index 16 (write)
+  pop af
+  out ($BE),a
+ml_noflash:
   ; per-frame corruption (B1+left/right = speed). speed_rate is in 1/8-frame
   ; units; accumulate and run floor(acc/8) passes, keeping the remainder so slow
   ; speeds fire only every few frames.

@@ -47,6 +47,14 @@ bank_init:
   ld (mosh_speed),a           ; default speed (mid of 0-15)
   ld hl,$ACE1                 ; nonzero LFSR seed
   ld (lfsr),hl
+  ; SYNC IN: seed the counter; boot on the INT clock until a clock arrives
+  call sync_read
+  ld a,b
+  ld (sync_last),a
+  ld a,90                     ; = CLOCK_SYNC_IDLE: start in INT-fallback state
+  ld (sync_idle),a
+  xor a
+  ld (sync_flash),a
   call clock_compute_fpt
   call scene_resolve
   call scene_load

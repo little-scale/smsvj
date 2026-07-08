@@ -116,5 +116,8 @@ fx_type         db          ; decoded active effect record
 fx_p0           db
 fx_p1           db
 fx_p2           db
+sync_last       db          ; SYNC IN: 2-bit counter value read last frame
+sync_idle       db          ; frames since the last sync clock (INT fallback)
+sync_flash      db          ; border-flash countdown on a received sync clock
 live_pal        dsb 32      ; live 32-entry CRAM shadow (CRAM isn't readable)
 .ENDE

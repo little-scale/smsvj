@@ -46,6 +46,65 @@ div16_8:
   djnz -
   ret
 
+; ---- SYNC IN -------------------------------------------------------------
+; Follow a 2-bit counter on controller port 2 (SMSGGDJ / genmddj SYNC OUT: one
+; clock per row = one tick, /1). Reuses SMSGGDJ's reader verbatim. When sync
+; clocks arrive we tick from them and flash the border; after CLOCK_SYNC_IDLE
+; quiet frames we fall back to the INT accumulator.
+.DEFINE CLOCK_SYNC_IDLE 90     ; ~1.5 s @60Hz with no clock -> INT
+.DEFINE CLOCK_FLASH     3      ; border-flash frames per received clock
+
+; Read the master's counter: B = TH<<1 | (TR AND TL). Counter bit 0 is TR AND TL
+; so straight and crossed cables both work. $DD: bit3=TR, bit2=TL, bit7=TH.
+sync_read:
+  in a,($DD)
+  ld c,a
+  ld b,0
+  and $0C                    ; TR AND TL
+  cp $0C
+  jr nz,sr_th
+  ld b,1
+sr_th:
+  bit 7,c                    ; TH
+  ret z
+  set 1,b
+  ret
+
+; A = sync clocks received since last frame (0-3). Clobbers BC.
+sync_in_delta:
+  call sync_read             ; B = 2-bit counter
+  ld a,(sync_last)
+  ld c,a
+  ld a,b
+  ld (sync_last),a
+  sub c
+  and 3
+  ret
+
+; Per-frame clock entry: sync when present, else INT. Sets sync_flash on a clock.
+clock_frame:
+  call sync_in_delta         ; A = clocks this frame
+  or a
+  jr z,cf_none
+  ld b,a                     ; tick B times
+  xor a
+  ld (sync_idle),a
+  ld a,CLOCK_FLASH
+  ld (sync_flash),a
+cf_tick:
+  push bc
+  call clock_tick
+  pop bc
+  djnz cf_tick
+  ret
+cf_none:
+  ld a,(sync_idle)
+  cp CLOCK_SYNC_IDLE
+  jr nc,clock_update         ; sync lost -> INT clock
+  inc a
+  ld (sync_idle),a
+  ret                        ; recently synced: wait for the next clock
+
 ; Called once per frame: acc += 1.0, and emit a tick when acc >= fpt.
 clock_update:
   ld a,(acc_hi)
