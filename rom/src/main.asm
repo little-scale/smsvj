@@ -141,8 +141,8 @@ ml_notext:
 ml_texthide:
   call text_hide
 ml_nooverlay:
-  ; corruption is now tempo-locked: clock_tick fires one mosh_step every
-  ; (16 - mosh_speed) ticks, so effects evolve in musical time (no per-frame loop).
+  ; corruption is tempo-locked: clock_tick fires one mosh_step every
+  ; mosh_ivals[speed] ticks (a 64-step cycle then reset), no per-frame loop.
   jp main_loop
 
 ; Draw the current sync mode overlay ("SYNC OFF/IN/24") for TEXT_FRAMES.
@@ -167,7 +167,7 @@ sst_draw:
   ld (boot_stage),a           ; a sync overlay ends the boot version/id sequence
   ret
 
-str_version:   .db "V0.1",0
+str_version:   .db "V0.11",0
 str_sync_off:  .db "SYNC OFF",0
 str_sync_in:   .db "SYNC IN",0
 str_sync_in24: .db "SYNC 24",0

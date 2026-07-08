@@ -108,12 +108,11 @@ compact ones alike.
 
 Both browser tools (look-patcher + tile studio) and the ROM runtime — clock/latch core,
 tile & name-table upload, register-2 mirror switching, 16 palettes/movement, and the full
-corruption suite — render and boot on emulator. **SYNC IN24 is hardware-confirmed**:
-following a USB-MIDI clock through the ESP32-S3 bridge (24 PPQN on controller port 2), with
-the border flashing on the beat. IN (SMSGGDJ SYNC OUT, ÷1) uses the same reader. ROM
-graphics ripping supports Phantasy Star RLE, Sonic 1, Sonic 2/Aspect and RNC ProPack (RNC
-verified byte-exact against the reference compressor). The rest of the controller-1 grammar
-is assemble-verified. See `CLAUDE.md` → Build order.
+corruption suite — run on hardware. **Sync is hardware-confirmed on both paths**: **IN**
+(÷1) synced to a **hardware SMSGGDJ**, and **IN24** (÷6) following a **USB-MIDI clock via
+the ESP32-S3** bridge — both on controller port 2, with tempo-locked movement and effects.
+ROM graphics ripping supports Phantasy Star RLE, Sonic 1, Sonic 2/Aspect and RNC ProPack
+(RNC verified byte-exact against the reference compressor). See `CLAUDE.md` → Build order.
 
 ## Companion projects
 

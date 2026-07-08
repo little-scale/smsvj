@@ -3,22 +3,29 @@
 All notable changes to SMSVJ. Versions mirror the sibling
 [SMSGGDJ](https://github.com/little-scale/smsggdj) `v0.YY` scheme.
 
-## Unreleased
+## v0.11 — 2026-07-08
 
-- **Sync** — the Pause button now cycles the clock source **OFF → IN → IN24** (was colour
-  freeze). IN follows an SMSGGDJ/genmddj SYNC OUT (÷1); IN24 follows a 24-PPQN sender (÷6).
-  A **B2 tap** toggles an on-beat border flash (off by default, works in any clock source).
-  **Hardware-confirmed:** IN24 off a USB-MIDI clock through the ESP32-S3 bridge, with the
-  beat flash.
-- **On-screen text** — added the SMSGGDJ 8×8 font and a sprite text overlay; shows the
-  version and the git build id at boot (~2 s each), and the sync mode whenever it changes.
-- **Build versioning** — a git short-hash build id baked in at boot (`make vrom` for a
-  hash-stamped copy), matching smsggdj.
-- **Wider effect speeds** — 16-bit rate table, ~255 corruption passes/frame at the top
-  (was ~31); browser preview matched.
+Tempo-locked visuals and hardware-confirmed sync.
+
+- **Sync — hardware-confirmed.** The Pause button cycles the clock source **OFF → IN →
+  IN24** (replacing colour freeze). **IN** (÷1) follows an SMSGGDJ/genmddj SYNC OUT —
+  tested synced to a **hardware SMSGGDJ**. **IN24** (÷6) follows a 24-PPQN sender — tested
+  off a **USB-MIDI clock through the ESP32-S3 bridge**. Reuses SMSGGDJ's exact port-2
+  counter reader (straight and crossed cables both work). A **B2 tap** toggles an on-beat
+  border flash (off by default, any clock source).
+- **Tempo-locked effects.** Corruption fires on ticks instead of per frame: speed = **1 / 2
+  / 4 / 8 / 16 ticks per step** (B1+→ = 1 tick), and each effect runs a **64-step cycle**
+  then resets (MELT/CHURN/XOR/STAMP reload tiles; SCRAMBLE/SMEAR/MORPH reload the layout),
+  so a full loop is **4–64 bars**, always bar-aligned.
+- **Bar-aligned movement.** Colour cycles rotate 16 CRAM entries, so a full loop is exactly
+  16 ticks (a bar) for fast movements or 16 beats for slow ones.
+- **On-screen text.** Added the SMSGGDJ 8×8 font and a sprite text overlay: the **version**
+  then the **git build id** at boot (~2 s each), and the **sync mode** whenever it changes.
+  Build id (`make vrom` for a hash-stamped copy) matches smsggdj.
 - **16 palettes** paired 1:1 with the 16 tilesets (a `.svjt` import lands its palette in the
-  matching slot); ROM ripping gained Sonic 1 and a unified **Find ▸** scanner; studio gained
-  move, tile ops, pixel pencil, brush slots, and a ROM/image tile importer.
+  matching slot). ROM graphics ripping gained **Sonic 1 SMS** and a unified **Find ▸**
+  scanner; the studio gained move, tile ops, pixel pencil, brush slots, and ROM/image tile
+  import.
 
 ## v0.1 — 2026-07-08
 

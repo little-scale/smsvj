@@ -211,7 +211,9 @@ SMEAR-H / SMEAR-V / CHURN.
 
 **Clock:** row = 1/16 = **tick**, **beat** = 4 ticks, **bar** = 16 ticks. Tempo comes
 from the internal clock or an external sync source (SMSGGDJ / Ableton Link via the ESP32
-bridge) on controller port 2.
+bridge) on controller port 2. **Sync is hardware-confirmed** on both paths: **IN** (÷1)
+synced to a hardware SMSGGDJ, and **IN24** (÷6) off a USB-MIDI clock through the ESP32-S3.
+Movement and effects are tempo-locked, so the whole visual follows the master's clock.
 
 ---
 
