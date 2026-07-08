@@ -305,7 +305,7 @@
     // Corruption effects, mirroring the ROM. MELT(7)/CHURN(9) mutate a working
     // copy of the tile patterns; SCRAMBLE(8) toggles flip/palette-bank bits of
     // name-table cells. Copies rebuild clean when off or the scene changes.
-    // Tempo-locked: fire one step every mosh_ivals[speed] ticks; a 16-step cycle
+    // Tempo-locked: fire one step every mosh_ivals[speed] ticks; a 64-step cycle
     // then reset (rebuild the clean copy), matching the ROM's clock_tick.
     const MOSH_IVALS = [16, 8, 4, 2, 1];         // speed idx -> ticks/step (idx 4 = 1 tick)
     const tickNow = Math.floor(clk.state.tick);
@@ -315,8 +315,8 @@
       ui.lastMoshTick = tickNow;
       if (tickNow % interval === 0) {
         kick = 1;
-        ui.moshStep = (ui.moshStep + 1) & 15;
-        if (ui.moshStep === 0) { ui.moshTiles = null; ui.moshLayout = null; } // 16-step reset
+        ui.moshStep = (ui.moshStep + 1) & 63;
+        if (ui.moshStep === 0) { ui.moshTiles = null; ui.moshLayout = null; } // 64-step reset
       }
     }
 

@@ -52,7 +52,7 @@ on the next boundary while playing, or applies instantly when stopped).
 - **▶ Play / ⏸** and **BPM / Region** (header) drive the clock.
 - **Colour freeze** — hold the current colours (a preview aid; on the console the Pause
   button now cycles the sync source instead).
-- **Speed −/+** — corruption ticks/step (1·2·4·8·16); each effect runs a 16-step cycle then resets.
+- **Speed −/+** — corruption ticks/step (1·2·4·8·16); each effect runs a 64-step cycle then resets.
 - **auto palette / effect / movement** — advance that axis every beat (for hands-off preview).
 
 ### Palettes & axes (right)

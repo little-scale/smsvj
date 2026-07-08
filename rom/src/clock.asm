@@ -153,9 +153,9 @@ clock_tick:
   call mosh_step
   ld a,(mosh_stepcnt)
   inc a
-  and 15
+  and 63
   ld (mosh_stepcnt),a
-  call z,mosh_reset          ; wrapped 15->0 after 16 steps: reset the cycle
+  call z,mosh_reset          ; wrapped 63->0 after 64 steps: reset the cycle
   ld a,(mosh_speed)          ; reload the tick interval for this speed
   ld e,a
   ld d,0

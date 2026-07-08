@@ -65,9 +65,9 @@ tileset N drops its palette into palette slot N). Latches: palette/effect/moveme
 **tick**, tileset on the **beat**. The **effect dial** is all corruption: down = SMEAR-D
 / STAMP / XOR / MORPH, centre = NONE, up = SCRAMBLE / SMEAR-H / SMEAR-V / CHURN.
 **Movement of 7**: slow/fast × up/down, two anti-phase wobbles, and none. **Speed** picks the
-corruption's **ticks/step** from `1·2·4·8·16` (B1+→ = 1 tick). Each effect runs a **16-step
-cycle** then the resettable ones reload clean — so a full loop is `16 × step` ticks = 1, 2, 4,
-8, or 16 bars, always bar-aligned and tempo-locked.
+corruption's **ticks/step** from `1·2·4·8·16` (B1+→ = 1 tick). Each effect runs a **64-step
+cycle** then the resettable ones reload clean — so a full loop is `64 × step` ticks = 4, 8,
+16, 32, or 64 bars, always bar-aligned and tempo-locked.
 Tempo-nudge dropped (tempo comes from Link/sync).
 
 **Sync source is explicit** (not auto): the **Pause button cycles OFF → IN → IN24**, shown
