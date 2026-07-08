@@ -75,13 +75,17 @@ SVJ.scene = (function () {
   ];
   // Movement axis of 7. "up" = CYCLE_BACK (radials flow outward), "down" = CYCLE_FWD.
   // Types: 1=fwd, 2=back, 3=wobble A (pingpong), 4=wobble B (pingpong, anti-phase).
+  // Rotate all 16 CRAM entries (0-15) so a full colour cycle is exactly 16 steps:
+  // fast (div 1) = 16 ticks = 1 bar; slow (div 4) = 16 beats. Entry 0 is unused by
+  // the generated patterns and the border is CRAM 16, so parking a colour there for
+  // one step has no visual cost — it just makes the loop bar-aligned.
   const FLOW = () => [
-    mv(0x02, 4, 1, 15),   // 0 slow up (outward)
-    mv(0x01, 4, 1, 15),   // 1 slow down
-    mv(0x02, 1, 1, 15),   // 2 fast up
-    mv(0x01, 1, 1, 15),   // 3 fast down
-    mv(0x03, 1, 1, 15),   // 4 wobble A
-    mv(0x04, 1, 1, 15),   // 5 wobble B
+    mv(0x02, 4, 0, 16),   // 0 slow up (outward)   — 16 beats / cycle
+    mv(0x01, 4, 0, 16),   // 1 slow down
+    mv(0x02, 1, 0, 16),   // 2 fast up             — 16 ticks (1 bar) / cycle
+    mv(0x01, 1, 0, 16),   // 3 fast down
+    mv(0x03, 1, 0, 16),   // 4 wobble A
+    mv(0x04, 1, 0, 16),   // 5 wobble B
     mv(0x00, 1, 0, 0),    // 6 none
   ];
 
